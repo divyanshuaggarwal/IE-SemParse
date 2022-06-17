@@ -14,6 +14,9 @@ Original file is located at
 # %autoreload 2
 
 
+import datasets
+import logging
+import json
 import torch
 
 torch.__version__
@@ -45,14 +48,13 @@ import argparse
 import csv, requests, json, os
 import warnings, sys, random
 from tqdm import tqdm
-from tqdm.notebook import tqdm
+# from tqdm.notebook import tqdm
 
 
 import transformers
 import pandas as pd
 
-import datasets
-import logging
+
 
 from datasets import load_dataset, load_metric, Dataset, DatasetDict
 import sentencepiece as spm
@@ -347,7 +349,7 @@ hyperparameters = {
 
 def training_function(model, tokenizer, dataset, hyperparameters=hyperparameters):
     # Initialize accelerator
-    accelerator = Accelerator()
+    accelerator = Accelerator(mixed_precision="bf16")
 
     # To have only one message (and not 8) per logs of Transformers or Datasets, we set the logging verbosity
     # to INFO for the main process only.
@@ -587,9 +589,6 @@ def exact_match(decoded_preds, decoded_labels):
     result = {k: round(v, 4) for k, v in result.items()}
     return round(result["exact_match"], 1)
 
-import json
-import pandas as pd
-
 
 def generate(model, tokenizer, dataset, raw_dataset, technique, dataset_name, lang):
     
@@ -606,7 +605,7 @@ def generate(model, tokenizer, dataset, raw_dataset, technique, dataset_name, la
 
     data_loader = DataLoader(dataset, batch_size=1, collate_fn=data_collator)
     
-    accelerator = Accelerator()
+    accelerator = Accelerator(mixed_precision="bf16")
 
     # Initialize accelerator
     if accelerator.is_main_process:
