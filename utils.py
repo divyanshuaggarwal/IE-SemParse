@@ -19,25 +19,11 @@ import logging
 import json
 import torch
 
-torch.__version__
+print(torch.__version__)
 
 import tensorflow as tf
 import os
 
-
-use_tpu=False
-try:
-    resolver = tf.distribute.cluster_resolver.TPUClusterResolver()
-    tf.config.experimental_connect_to_cluster(resolver)
-    tf.tpu.experimental.initialize_tpu_system(resolver)
-    print("All devices: ", tf.config.list_logical_devices('TPU'))
-    strategy = tf.distribute.experimental.TPUStrategy(resolver)
-    use_tpu = True
-except ValueError:
-    strategy = tf.distribute.get_strategy()
-
-
-print(use_tpu)
 
 
 from collections import Counter
