@@ -345,7 +345,7 @@ hyperparameters = {
 
 
 
-def training_function(model, dataset, hyperparameters=hyperparameters):
+def training_function(model, tokenizer, dataset, hyperparameters=hyperparameters):
     # Initialize accelerator
     accelerator = Accelerator()
 

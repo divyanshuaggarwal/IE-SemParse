@@ -39,7 +39,7 @@ def main():
                 dataset = prepare_dataset(raw_dataset, tokenizer)
 
                 # def _train():
-                training_function(model, dataset, hyperparameters)
+                training_function(model, tokenizer, dataset, hyperparameters)
 
                 # notebook_launcher(_train, use_fp16 = True)
 
