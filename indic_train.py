@@ -1,7 +1,11 @@
 from utils import *
 
 
+
+
 def main():
+    args = get_args()
+    
     for dataset_name in dataset_names:
         print(f"dataset:{dataset_name}")
 
