@@ -335,7 +335,7 @@ hyperparameters = {
 
 def training_function(model, tokenizer, dataset, hyperparameters=hyperparameters):
     # Initialize accelerator
-    accelerator = Accelerator(mixed_precision="bf16")
+    accelerator = Accelerator(mixed_precision="fp16")
 
     # To have only one message (and not 8) per logs of Transformers or Datasets, we set the logging verbosity
     # to INFO for the main process only.
@@ -591,7 +591,7 @@ def generate(model, tokenizer, dataset, raw_dataset, technique, dataset_name, la
 
     data_loader = DataLoader(dataset, batch_size=1, collate_fn=data_collator)
     
-    accelerator = Accelerator(mixed_precision="bf16")
+    accelerator = Accelerator(mixed_precision="fp16")
 
     # Initialize accelerator
     if accelerator.is_main_process:
