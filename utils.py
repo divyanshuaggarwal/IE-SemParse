@@ -42,9 +42,9 @@ import string
 import re
 import argparse
 
-import csv, requests, json
+import csv, requests, json, os
 import warnings, sys, random
-from tqdm import tqdm, os
+from tqdm import tqdm
 from tqdm.notebook import tqdm
 
 
