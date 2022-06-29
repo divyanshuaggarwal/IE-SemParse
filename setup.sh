@@ -16,3 +16,5 @@ git clone https://divyanshu:Wateringplants_98@huggingface.co/datasets/Divyanshu/
 
 # tmux detach
 
+git config --global user.email "divyanshuggrwl@gmail.com"
+git config --global user.name "divyanshuaggarwal"
