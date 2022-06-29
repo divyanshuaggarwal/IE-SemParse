@@ -21,7 +21,7 @@ import torch
 
 print(torch.__version__)
 
-import tensorflow as tf
+# import tensorflow as tf
 import os
 
 
@@ -104,11 +104,11 @@ def pre_process_logical_form( sent):
 def create_dataset(dataset, lang):
 
     if lang != "en":
-        with open(f'/content/drive/MyDrive/iTOP/data/{dataset}/{lang}.json',"r") as f:
+        with open(f'Indic-SemParse/{dataset}/{lang}.json',"r") as f:
             data = json.load(f)
 
     else:
-        with open(f'/content/drive/MyDrive/iTOP/data/{dataset}/hi.json',"r") as f:
+        with open(f'Indic-SemParse/{dataset}/hi.json',"r") as f:
             data = json.load(f)
 
     train = data['train']
@@ -491,7 +491,7 @@ def training_function(model, tokenizer, dataset, hyperparameters=hyperparameters
 
     model = accelerator.unwrap_model(model)
 
-base_path = "/content/drive/MyDrive/iTOP/results"
+base_path = "results"
 
 
 def make_pth(strategy, dataset,model, lang = None):
@@ -726,48 +726,4 @@ hyperparameters = {
 }
 
 
-def get_args():
-    parser = argparse.ArgumentParser(
-        description="Simple example of training script.")
-    parser.add_argument(
-        "--mixed_precision",
-        type=str,
-        default="no",
-        choices=["no", "fp16", "bf16"],
-        help="Whether to use mixed precision. Choose"
-        "between fp16 and bf16 (bfloat16). Bf16 requires PyTorch >= 1.10."
-        "and an Nvidia Ampere GPU.",
-    )
-    parser.add_argument("--cpu", action="store_true",
-                        help="If passed, will train on the CPU.")
-    parser.add_argument(
-        "--checkpointing_steps",
-        type=str,
-        default=None,
-        help="Whether the various states should be saved at the end of every n steps, or 'epoch' for each epoch.",
-    )
-    parser.add_argument(
-        "--resume_from_checkpoint",
-        type=str,
-        default=None,
-        help="If the training should continue from a checkpoint folder.",
-    )
-    parser.add_argument(
-        "--with_tracking",
-        action="store_true",
-        help="Whether to load in all available experiment trackers from the environment and use them for logging.",
-    )
-    parser.add_argument(
-        "--output_dir",
-        type=str,
-        default=".",
-        help="Optional save directory where all checkpoint folders will be stored. Default is the current working directory.",
-    )
-    parser.add_argument(
-        "--logging_dir",
-        type=str,
-        default="logs",
-        help="Location on where to store experiment tracking logs`",
-    )
-    args = parser.parse_args()
-    return args
+
