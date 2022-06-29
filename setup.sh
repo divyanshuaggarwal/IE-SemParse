@@ -9,7 +9,7 @@ apt-get update && apt-get upgrade -y
 apt-get install tmux git-lfs htop
 
 git lfs install
-git clone https://huggingface.co/datasets/Divyanshu/Indic-SemParse
+git clone https://divyanshu:Wateringplants_98@huggingface.co/datasets/Divyanshu/Indic-SemParse
 
 tmux
 
