@@ -14,41 +14,16 @@ Original file is located at
 # %autoreload 2
 
 
-import datasets
-import logging
-import json
-import torch
-
-print(torch.__version__)
-
-# import tensorflow as tf
-import os
-
-
-
-from collections import Counter
-import string
-import re
-import argparse
-
-import csv, requests, json, os
-import warnings, sys, random
-from tqdm import tqdm
-# from tqdm.notebook import tqdm
-
-
-import transformers
-import pandas as pd
-
-
-
-from datasets import load_dataset, load_metric, Dataset, DatasetDict
-import sentencepiece as spm
-
-import torch
-from torch.nn import functional as F
-from torch.utils.data import DataLoader
-
+import random
+import sys
+import requests
+import warnings
+import csv
+import itertools
+import math
+import numpy as np
+from accelerate.logging import get_logger
+from accelerate import Accelerator, notebook_launcher
 from transformers import (
                             AutoModelForSeq2SeqLM,
                             EncoderDecoderModel,
@@ -57,14 +32,29 @@ from transformers import (
                             get_scheduler,
                             set_seed,
                         )
-
-from accelerate import Accelerator, notebook_launcher
-from accelerate.logging import get_logger
-
-import numpy as np
-import math
+from torch.utils.data import DataLoader
+from torch.nn import functional as F
+import sentencepiece as spm
+from datasets import load_dataset, load_metric, Dataset, DatasetDict
+import pandas as pd
+import transformers
+from tqdm import tqdm
+import argparse
 import re
-import itertools
+import string
+from collections import Counter
+import os
+import datasets
+import logging
+import json
+import torch
+
+print(torch.__version__)
+
+# import tensorflow as tf
+
+
+# from tqdm.notebook import tqdm
 
 
 logger = get_logger(__name__)
@@ -74,7 +64,7 @@ logger = get_logger(__name__)
 # Load a metric
 metric = load_metric("exact_match")
 
-## Summary info about the Metric
+# Summary info about the Metric
 metric
 
 """# Define the Translation Data Module"""
@@ -93,40 +83,42 @@ mbart_dict = {
     "kn": "te_IN"
 }
 
-def pre_process_logical_form( sent):
-    x = sent.replace('[','[ ')
-    x = x.replace(']',' ]')
-    x = x.replace('SL:',' SLOT: ')
-    x = x.replace('IN:',' INTENT: ')
+
+def pre_process_logical_form(sent):
+    x = sent.replace('[', '[ ')
+    x = x.replace(']', ' ]')
+    x = x.replace('SL:', ' SLOT: ')
+    x = x.replace('IN:', ' INTENT: ')
     x = re.sub(r'\s+', ' ', x)
     return x
+
 
 def create_dataset(dataset, lang):
 
     if lang != "en":
-        with open(f'Indic-SemParse/{dataset}/{lang}.json',"r") as f:
+        with open(f'Indic-SemParse/{dataset}/{lang}.json', "r") as f:
             data = json.load(f)
 
     else:
-        with open(f'Indic-SemParse/{dataset}/hi.json',"r") as f:
+        with open(f'Indic-SemParse/{dataset}/hi.json', "r") as f:
             data = json.load(f)
 
     train = data['train']
 
     if dataset != "indic-atis":
         val = data['validation']
-    
+
     test = data['test']
-    
-    
+
     if dataset == 'itop':
         for idx, example in enumerate(train):
             if lang != "en":
                 train[idx]['src'] = example["postprocessed_translated_question"]
             else:
                 train[idx]['src'] = example["question"]
-            train[idx]['trg'] = pre_process_logical_form(example["logical_form"])
-        
+            train[idx]['trg'] = pre_process_logical_form(
+                example["logical_form"])
+
         for idx, example in enumerate(val):
             if lang != "en":
                 val[idx]['src'] = example["postprocessed_translated_question"]
@@ -139,7 +131,8 @@ def create_dataset(dataset, lang):
                 test[idx]['src'] = example["postprocessed_translated_question"]
             else:
                 test[idx]['src'] = example["question"]
-            test[idx]['trg'] = pre_process_logical_form(example["logical_form"])
+            test[idx]['trg'] = pre_process_logical_form(
+                example["logical_form"])
 
     elif dataset == "indic-TOP":
         for idx, example in enumerate(train):
@@ -147,22 +140,24 @@ def create_dataset(dataset, lang):
                 train[idx]['src'] = example["postprocessed_translated_question"]
             else:
                 train[idx]['src'] = example["question"]
-            train[idx]['trg'] = pre_process_logical_form(example["decoupled logical form"])
-        
+            train[idx]['trg'] = pre_process_logical_form(
+                example["decoupled logical form"])
+
         for idx, example in enumerate(val):
             if lang != "en":
                 val[idx]['src'] = example["postprocessed_translated_question"]
             else:
                 val[idx]['src'] = example["question"]
-            val[idx]['trg'] = pre_process_logical_form(example["decoupled logical form"])
+            val[idx]['trg'] = pre_process_logical_form(
+                example["decoupled logical form"])
 
         for idx, example in enumerate(test):
             if lang != "en":
                 test[idx]['src'] = example["postprocessed_translated_question"]
             else:
                 test[idx]['src'] = example["question"]
-            test[idx]['trg'] = pre_process_logical_form(example["decoupled logical form"])
-
+            test[idx]['trg'] = pre_process_logical_form(
+                example["decoupled logical form"])
 
     elif dataset == "indic-atis":
         for idx, example in enumerate(train):
@@ -170,8 +165,9 @@ def create_dataset(dataset, lang):
                 train[idx]['src'] = example["postprocessed_translated_text"]
             else:
                 train[idx]['src'] = example["text"]
-            train[idx]['trg'] = pre_process_logical_form(example["logical form"])
-        
+            train[idx]['trg'] = pre_process_logical_form(
+                example["logical form"])
+
         for idx, example in enumerate(val):
             if lang != "en":
                 val[idx]['src'] = example["postprocessed_translated_text"]
@@ -184,12 +180,13 @@ def create_dataset(dataset, lang):
                 test[idx]['src'] = example["postprocessed_translated_text"]
             else:
                 test[idx]['src'] = example["text"]
-            test[idx]['trg'] = pre_process_logical_form(example["logical form"])
+            test[idx]['trg'] = pre_process_logical_form(
+                example["logical form"])
 
     train_data = Dataset.from_pandas(pd.DataFrame(data=train))
 
     val_data = Dataset.from_pandas(pd.DataFrame(data=val))
-    
+
     test_data = Dataset.from_pandas(pd.DataFrame(data=test).iloc[:8])
 
     dataset = DatasetDict()
@@ -197,7 +194,7 @@ def create_dataset(dataset, lang):
     dataset['train'] = train_data
 
     dataset['val'] = val_data
-    
+
     dataset['test'] = test_data
 
     return dataset
@@ -212,13 +209,15 @@ def preprocess(examples, tokenizer):
         prefix = f"Parse to english logical from:"
     else:
         prefix = ""
-        
+
     inputs = [prefix + example for example in examples['src']]
     targets = [example for example in examples['trg']]
-    model_inputs = tokenizer(inputs, max_length=max_source_length, padding= "max_length",truncation=True)
+    model_inputs = tokenizer(
+        inputs, max_length=max_source_length, padding="max_length", truncation=True)
 
     with tokenizer.as_target_tokenizer():
-        labels = tokenizer(targets, max_length=max_target_length, padding= "max_length", truncation=True)
+        labels = tokenizer(targets, max_length=max_target_length,
+                           padding="max_length", truncation=True)
 
     labels["input_ids"] = [
                 [(l if l != tokenizer.pad_token_id else -100) for l in label] for label in labels["input_ids"]
@@ -227,9 +226,11 @@ def preprocess(examples, tokenizer):
     model_inputs["labels"] = labels["input_ids"]
     return model_inputs
 
+
 model_checkpoint = "facebook/bart-base"
 
-def get_tokenizer(model_checkpoint,lang):
+
+def get_tokenizer(model_checkpoint, lang):
     tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
     tokenizer.bos_token = "<s>"
     tokenizer.eos_token = "</s>"
@@ -238,35 +239,35 @@ def get_tokenizer(model_checkpoint,lang):
     tokenizer.eos_id = tokenizer._convert_token_to_id_with_added_voc("</s>")
     tokenizer.pad_id = tokenizer._convert_token_to_id_with_added_voc("<pad>")
 
-
-    tokenizer.add_tokens(['[',']','SL:',"IN:"] + [f'<2{lang}>' for lang in INDIC])
+    tokenizer.add_tokens(['[', ']', 'SL:', "IN:"] +
+                         [f'<2{lang}>' for lang in INDIC])
 
     tokenizer.model_max_length = 128
         # Define label pad token id
     label_pad_token_id = -100
     padding = True
 
-        
-
     if "mbart" in model_checkpoint:
         tokenizer.src_lang = mbart_dict[lang]
         tokenizer.tgt_lang = "en_XX"
-    
+
     return tokenizer
+
 
 def get_model(model_checkpoint, tokenizer, lang, encoder_decoder=False):
 
     if encoder_decoder:
-        model = EncoderDecoderModel.from_encoder_decoder_pretrained(model_checkpoint, model_checkpoint, tie_encoder_decoder=True)
+        model = EncoderDecoderModel.from_encoder_decoder_pretrained(
+            model_checkpoint, model_checkpoint, tie_encoder_decoder=True)
 
     else:
         model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint)
 
     if encoder_decoder:
-        model.config.decoder_start_token_id = tokenizer.bos_token_id                                             
+        model.config.decoder_start_token_id = tokenizer.bos_token_id
         model.config.eos_token_id = tokenizer.eos_token_id
         model.config.pad_token_id = tokenizer.pad_token_id
-                                
+
         model.config.max_length = 128
         model.config.early_stopping = True
         model.config.no_repeat_ngram_size = 1
@@ -279,19 +280,21 @@ def get_model(model_checkpoint, tokenizer, lang, encoder_decoder=False):
         model.decoder.resize_token_embeddings(len(tokenizer))
 
     else:
-        model.resize_token_embeddings(len(tokenizer)) 
+        model.resize_token_embeddings(len(tokenizer))
 
-        
     if "mbart" in model_checkpoint:
         model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[lang]]
 
     else:
-        model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(lang) 
+        model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(
+            lang)
 
     return model
 
+
 def prepare_dataset(dataset, tokenizer):
-    dataset = dataset.map(lambda x: preprocess(x, tokenizer), batched = True, remove_columns=dataset['train'].column_names, )
+    dataset = dataset.map(lambda x: preprocess(
+        x, tokenizer), batched=True, remove_columns=dataset['train'].column_names, )
 
     if "token_type_ids" in dataset['train'].column_names:
         dataset['train'] = dataset['train'].remove_columns("token_type_ids")
@@ -300,29 +303,33 @@ def prepare_dataset(dataset, tokenizer):
 
     return dataset
 
+
 def create_dataloaders(dataset, train_batch_size=8, eval_batch_size=8, collate_fn=None):
     train_dataloader = DataLoader(
-                                  dataset['train'], 
-                                  shuffle=True, 
-                                  batch_size=train_batch_size, 
+                                  dataset['train'],
+                                  shuffle=True,
+                                  batch_size=train_batch_size,
                                   collate_fn=collate_fn
                                   )
     val_dataloader = DataLoader(
-                                dataset['val'], 
-                                shuffle=False, 
-                                batch_size=eval_batch_size, 
+                                dataset['val'],
+                                shuffle=False,
+                                batch_size=eval_batch_size,
                                 collate_fn=collate_fn
                                 )
-    
+
     return train_dataloader, val_dataloader
+
 
 hyperparameters = {
     "learning_rate": 1e-3,
-    "num_epochs": 1000, # set to very high number
-    "train_batch_size": 16, # Actual batch size will this x 8 (was 8 before but can cause OOM)
-    "eval_batch_size": 16, # Actual batch size will this x 8 (was 32 before but can cause OOM)
+    "num_epochs": 1000,  # set to very high number
+    # Actual batch size will this x 8 (was 8 before but can cause OOM)
+    "train_batch_size": 16,
+    # Actual batch size will this x 8 (was 32 before but can cause OOM)
+    "eval_batch_size": 16,
     "seed": 42,
-    "patience": 2, # early stopping
+    "patience": 2,  # early stopping
     "output_dir": "/content/",
     "gradient_accumulation_steps": 4,
     "num_warmup_steps": 500,
@@ -332,10 +339,9 @@ hyperparameters = {
 # import datasets
 
 
-
 def training_function(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
     # Initialize accelerator
-    accelerator = Accelerator(mixed_precision="fp16")
+    accelerator = Accelerator(cpu=args.cpu, mixed_precision=args.mixed_precision)
 
     # To have only one message (and not 8) per logs of Transformers or Datasets, we set the logging verbosity
     # to INFO for the main process only.
@@ -351,11 +357,11 @@ def training_function(model, tokenizer, dataset, args, hyperparameters=hyperpara
     # The seed need to be set before we instantiate the model, as it will determine the random head.
     set_seed(hyperparameters["seed"])
 
-    data_collator = DataCollatorForSeq2Seq(
-                                        tokenizer=tokenizer, 
-                                        model=model, 
-                                        label_pad_token_id=-100,
-                                        pad_to_multiple_of=8
+    data_collator=DataCollatorForSeq2Seq(
+                                        tokenizer = tokenizer,
+                                        model = model,
+                                        label_pad_token_id = -100,
+                                        pad_to_multiple_of = 8
                                     )
 
     train_dataloader, val_dataloader = create_dataloaders(  
