@@ -333,7 +333,7 @@ hyperparameters = {
 
 
 
-def training_function(model, tokenizer, dataset, hyperparameters=hyperparameters):
+def training_function(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
     # Initialize accelerator
     accelerator = Accelerator(mixed_precision="fp16")
 

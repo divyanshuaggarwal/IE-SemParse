@@ -50,6 +50,8 @@ def get_args():
 
 def main():
     args = get_args()
+    if "indic_train" not in os.listdir(base_path):
+        os.mkdir(os.path.join(base_path, "indic_train"))
 
     for dataset_name in dataset_names:
         print(f"dataset:{dataset_name}")
@@ -88,7 +90,8 @@ def main():
                 dataset = prepare_dataset(raw_dataset, tokenizer)
 
                 # def _train():
-                training_function(model, tokenizer, dataset, hyperparameters)
+                training_function(model, tokenizer, dataset,
+                                  args, hyperparameters)
 
                 # notebook_launcher(_train, use_fp16 = True)
 
