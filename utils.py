@@ -51,6 +51,9 @@ import torch
 
 print(torch.__version__)
 
+if torch.cuda.is_available():
+    os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+
 # import tensorflow as tf
 
 
@@ -83,6 +86,8 @@ mbart_dict = {
     "kn": "te_IN"
 }
 
+INDIC = ['hi','bn','mr','as','ta','te','or','ml','pa','gu','kn']
+
 
 def pre_process_logical_form(sent):
     x = sent.replace('[', '[ ')
@@ -93,26 +98,33 @@ def pre_process_logical_form(sent):
     return x
 
 
-def create_dataset(dataset, lang):
+def create_dataset(dataset, train_lang, test_lang, backtranslated = False):
 
-    if lang != "en":
-        with open(f'Indic-SemParse/{dataset}/{lang}.json', "r") as f:
-            data = json.load(f)
+    if train_lang != "en":
+        with open(f'Indic-SemParse/{dataset}/{train_lang}.json', "r") as f:
+            train_data = json.load(f)
 
     else:
         with open(f'Indic-SemParse/{dataset}/hi.json', "r") as f:
-            data = json.load(f)
+            train_data = json.load(f)
 
-    train = data['train']
+    if test_lang != "en":
+        with open(f'Indic-SemParse/{dataset}/{test_lang}.json', "r") as f:
+            test_data = json.load(f)
 
-    if dataset != "indic-atis":
-        val = data['validation']
+    else:
+        with open(f'Indic-SemParse/{dataset}/hi.json', "r") as f:
+            test_data = json.load(f)
 
-    test = data['test']
+    train = train_data['train']
+
+    val = test_data['validation']
+
+    test = test_data['test']
 
     if dataset == 'itop':
         for idx, example in enumerate(train):
-            if lang != "en":
+            if train_lang != "en":
                 train[idx]['src'] = example["postprocessed_translated_question"]
             else:
                 train[idx]['src'] = example["question"]
@@ -120,15 +132,22 @@ def create_dataset(dataset, lang):
                 example["logical_form"])
 
         for idx, example in enumerate(val):
-            if lang != "en":
-                val[idx]['src'] = example["postprocessed_translated_question"]
+            if test_lang != "en":
+                if backtranslated:
+                    val[idx]['src'] = example["backtranslated_post_processed_questions"]
+                else:
+                    val[idx]['src'] = example["postprocessed_translated_question"]
             else:
                 val[idx]['src'] = example["question"]
-            val[idx]['trg'] = pre_process_logical_form(example["logical_form"])
+            val[idx]['trg'] = pre_process_logical_form(
+                example["logical_form"])
 
         for idx, example in enumerate(test):
-            if lang != "en":
-                test[idx]['src'] = example["postprocessed_translated_question"]
+            if test_lang != "en":
+                if backtranslated:
+                    test[idx]['src'] = example["backtranslated_post_processed_questions"]
+                else:
+                    test[idx]['src'] = example["postprocessed_translated_question"]
             else:
                 test[idx]['src'] = example["question"]
             test[idx]['trg'] = pre_process_logical_form(
@@ -136,7 +155,7 @@ def create_dataset(dataset, lang):
 
     elif dataset == "indic-TOP":
         for idx, example in enumerate(train):
-            if lang != "en":
+            if train_lang != "en":
                 train[idx]['src'] = example["postprocessed_translated_question"]
             else:
                 train[idx]['src'] = example["question"]
@@ -144,16 +163,22 @@ def create_dataset(dataset, lang):
                 example["decoupled logical form"])
 
         for idx, example in enumerate(val):
-            if lang != "en":
-                val[idx]['src'] = example["postprocessed_translated_question"]
+            if test_lang != "en":
+                if backtranslated:
+                    val[idx]['src'] = example["backtranslated_post_processed_questions"]
+                else:
+                    val[idx]['src'] = example["postprocessed_translated_question"]
             else:
                 val[idx]['src'] = example["question"]
             val[idx]['trg'] = pre_process_logical_form(
                 example["decoupled logical form"])
 
         for idx, example in enumerate(test):
-            if lang != "en":
-                test[idx]['src'] = example["postprocessed_translated_question"]
+            if test_lang != "en":
+                if backtranslated:
+                    test[idx]['src'] = example["backtranslated_post_processed_questions"]
+                else:
+                    test[idx]['src'] = example["postprocessed_translated_question"]
             else:
                 test[idx]['src'] = example["question"]
             test[idx]['trg'] = pre_process_logical_form(
@@ -161,23 +186,30 @@ def create_dataset(dataset, lang):
 
     elif dataset == "indic-atis":
         for idx, example in enumerate(train):
-            if lang != "en":
-                train[idx]['src'] = example["postprocessed_translated_text"]
+            if train_lang != "en":
+                train[idx]['src'] = example["translated_text"]
             else:
                 train[idx]['src'] = example["text"]
             train[idx]['trg'] = pre_process_logical_form(
                 example["logical form"])
 
         for idx, example in enumerate(val):
-            if lang != "en":
-                val[idx]['src'] = example["postprocessed_translated_text"]
+            if test_lang != "en":
+                if backtranslated:
+                    val[idx]['src'] = example["backtranslated_text"]
+                else:
+                    val[idx]['src'] = example["translated_text"]
             else:
                 val[idx]['src'] = example["text"]
-            val[idx]['trg'] = pre_process_logical_form(example["logical form"])
+            val[idx]['trg'] = pre_process_logical_form(
+                example["logical form"])
 
         for idx, example in enumerate(test):
-            if lang != "en":
-                test[idx]['src'] = example["postprocessed_translated_text"]
+            if test_lang != "en":
+                if backtranslated:
+                    test[idx]['src'] = example["backtranslated_text"]
+                else:
+                    test[idx]['src'] = example["translated_text"]
             else:
                 test[idx]['src'] = example["text"]
             test[idx]['trg'] = pre_process_logical_form(
@@ -187,7 +219,7 @@ def create_dataset(dataset, lang):
 
     val_data = Dataset.from_pandas(pd.DataFrame(data=val))
 
-    test_data = Dataset.from_pandas(pd.DataFrame(data=test).iloc[:8])
+    test_data = Dataset.from_pandas(pd.DataFrame(data=test))
 
     dataset = DatasetDict()
 
@@ -201,8 +233,8 @@ def create_dataset(dataset, lang):
 
 
 def preprocess(examples, tokenizer):
-    max_source_length = 128
-    max_target_length = 128
+    max_source_length = 64
+    max_target_length = 64
     padding = "max_length"
 
     if "mt5" in tokenizer.name_or_path:
@@ -231,7 +263,7 @@ model_checkpoint = "facebook/bart-base"
 
 
 def get_tokenizer(model_checkpoint, lang):
-    tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
+    tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, cache_dir = "models/")
     tokenizer.bos_token = "<s>"
     tokenizer.eos_token = "</s>"
 
@@ -242,7 +274,7 @@ def get_tokenizer(model_checkpoint, lang):
     tokenizer.add_tokens(['[', ']', 'SL:', "IN:"] +
                          [f'<2{lang}>' for lang in INDIC])
 
-    tokenizer.model_max_length = 128
+    tokenizer.model_max_length = 64
         # Define label pad token id
     label_pad_token_id = -100
     padding = True
@@ -261,14 +293,14 @@ def get_model(model_checkpoint, tokenizer, lang, encoder_decoder=False):
             model_checkpoint, model_checkpoint, tie_encoder_decoder=True)
 
     else:
-        model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint)
+        model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint, cache_dir = "models/")
 
     if encoder_decoder:
         model.config.decoder_start_token_id = tokenizer.bos_token_id
         model.config.eos_token_id = tokenizer.eos_token_id
         model.config.pad_token_id = tokenizer.pad_token_id
 
-        model.config.max_length = 128
+        model.config.max_length = 64
         model.config.early_stopping = True
         model.config.no_repeat_ngram_size = 1
         model.config.length_penalty = 2.0
@@ -341,7 +373,7 @@ hyperparameters = {
 
 def training_function(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
     # Initialize accelerator
-    accelerator = Accelerator(cpu=args.cpu, mixed_precision=args.mixed_precision)
+    accelerator = Accelerator(mixed_precision="bf16")
 
     # To have only one message (and not 8) per logs of Transformers or Datasets, we set the logging verbosity
     # to INFO for the main process only.
@@ -597,7 +629,7 @@ def generate(model, tokenizer, dataset, raw_dataset, technique, dataset_name, la
 
     data_loader = DataLoader(dataset, batch_size=1, collate_fn=data_collator)
     
-    accelerator = Accelerator(mixed_precision="fp16")
+    accelerator = Accelerator(mixed_precision="bf16")
 
     # Initialize accelerator
     if accelerator.is_main_process:
@@ -623,7 +655,7 @@ def generate(model, tokenizer, dataset, raw_dataset, technique, dataset_name, la
             accelerator.print("entered in torch no grad")
             generated_tokens = accelerator.unwrap_model(model).generate(
                                                                             batch["input_ids"],
-                                                                            max_length=50,
+                                                                            max_length=64,
                                                                             num_beams=3, 
                                                                             early_stopping=True,
                                                                             use_cache=False,
@@ -698,38 +730,16 @@ def generate(model, tokenizer, dataset, raw_dataset, technique, dataset_name, la
                     }, 
                     f, indent=6, ensure_ascii=False)
         
-    accelerator.wait_for_everyone()
+    # accelerator.wait_for_everyone()
 
-"""# Define Training Parameters"""
 
-seq2seq_models = [ 
-                  'ai4bharat/IndicBART',
-                  'google/mt5-base', 
-                  "facebook/mbart-large-50",
-                  ]
 
-encoder_models = [
-                  'xlm-roberta-base',
-                  "google/muril-base-cased"
-                  ]
 
-dataset_names = ["itop", "indic-TOP", "indic-atis"]
+def remove_model():
+    files = glob.glob('models/*')
+    for f in files:
+        os.remove(f)
 
-INDIC = ['hi','bn','mr','as','ta','te','or','ml','pa','gu','kn']
-
-hyperparameters = {
-    "learning_rate": 1e-3,
-    # "num_epochs": 1000,
-    "num_epochs": 1, # set to very high number
-    "train_batch_size": 8, # Actual batch size will this x 8 (was 8 before but can cause OOM)
-    "eval_batch_size": 8, # Actual batch size will this x 8 (was 32 before but can cause OOM)
-    "seed": 42,
-    "patience": 1, # early stopping
-    "output_dir": "/content/trained_model",
-    "gradient_accumulation_steps": 4,
-    "num_warmup_steps": 0,
-    "weight_decay": 0.0
-}
 
 
 

@@ -41,7 +41,7 @@ import torch
 # !pip install datasets transformers pytorch-lightning sentencepiece torchtext torchvision torch python-Levenshtein --upgrade
 
 ## Needed for Cuda debugging as Cuda errors can be very cryptic
-import os
+import os, glob
 import torch
 
 
@@ -54,7 +54,7 @@ import csv, requests, json
 from itertools import compress
 import warnings, sys, random
 from tqdm import tqdm
-import os
+import os, glob
 
 import pytorch_lightning as pl
 from pytorch_lightning import Trainer, seed_everything
@@ -75,17 +75,11 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
 from transformers import (
-                            AdamW,
                             AutoModelForSeq2SeqLM,
                             EncoderDecoderModel,
                             AutoTokenizer,
                             DataCollatorForSeq2Seq,
-                            MBartTokenizer,
-                            MBartTokenizerFast,
-                            SchedulerType,
                             get_scheduler,
-                            pipeline,
-                            default_data_collator
                         )
 
 # from accelerate import Accelerator, notebook_launcher
@@ -130,7 +124,7 @@ mbart_dict = {
 }
 
 def get_tokenizer(model_checkpoint, lang, encoder_decoder = False):
-    tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
+    tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, cache_dir="models/")
 
     if "indic" in tokenizer.name_or_path.lower():
         tokenizer.bos_token = "<s>"
@@ -165,7 +159,7 @@ def get_model(model_checkpoint, tokenizer, lang, encoder_decoder=False):
         model = EncoderDecoderModel.from_encoder_decoder_pretrained(model_checkpoint, model_checkpoint, tie_encoder_decoder=True)
 
     else:
-        model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint)
+        model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint, cache_dir="models/")
 
     if encoder_decoder:
         model.config.decoder_start_token_id = tokenizer.bos_token_id                                             
@@ -206,7 +200,7 @@ class SemanticParseDataModule(pl.LightningDataModule):
                  backtranslated = False,
                  max_len = 64, 
                  batch_size: int = BATCH_SIZE, 
-                 num_workers: int = 2):
+                 num_workers: int = 4):
         super().__init__()
 
 
@@ -243,7 +237,7 @@ class SemanticParseDataModule(pl.LightningDataModule):
         return x
 
     def prepare_data(self):
-        AutoTokenizer.from_pretrained(self.model_name, keep_accent=True)
+        AutoTokenizer.from_pretrained(self.model_name, keep_accent=True, cache_dir="models/")
 
     def open_data(self):
 
@@ -255,20 +249,20 @@ class SemanticParseDataModule(pl.LightningDataModule):
 
 
         if train_lang != "en":
-            with open(f'/content/drive/MyDrive/iTOP/data/{dataset}/{train_lang}.json',"r") as f:
+            with open(f'Indic-SemParse/{dataset}/{train_lang}.json',"r") as f:
                 train_data = json.load(f)
 
         else:
-            with open(f'/content/drive/MyDrive/iTOP/data/{dataset}/hi.json',"r") as f:
+            with open(f'Indic-SemParse/{dataset}/hi.json',"r") as f:
                 train_data = json.load(f)
 
         
         if test_lang != "en":
-            with open(f'/content/drive/MyDrive/iTOP/data/{dataset}/{test_lang}.json',"r") as f:
+            with open(f'Indic-SemParse/{dataset}/{test_lang}.json',"r") as f:
                 test_data = json.load(f)
 
         else:
-            with open(f'/content/drive/MyDrive/iTOP/data/{dataset}/hi.json',"r") as f:
+            with open(f'Indic-SemParse/{dataset}/hi.json',"r") as f:
                 test_data = json.load(f)
 
         train = train_data['train']
@@ -280,17 +274,14 @@ class SemanticParseDataModule(pl.LightningDataModule):
         
         if dataset == 'itop':
             for idx, example in enumerate(train):
-                if lang != "en":
-                    if backtranslated:
-                        train[idx]['src'] = example["backtranslated_post_processed_questions"]
-                    else:
-                        train[idx]['src'] = example["postprocessed_translated_question"]
+                if train_lang != "en":
+                    train[idx]['src'] = example["postprocessed_translated_question"]
                 else:
                     train[idx]['src'] = example["question"]
                 train[idx]['trg'] = self.pre_process_logical_form(example["logical_form"])
             
             for idx, example in enumerate(val):
-                if lang != "en":
+                if test_lang != "en":
                     if backtranslated:
                         val[idx]['src'] = example["backtranslated_post_processed_questions"]
                     else:
@@ -300,7 +291,7 @@ class SemanticParseDataModule(pl.LightningDataModule):
                 val[idx]['trg'] = self.pre_process_logical_form(example["logical_form"])
 
             for idx, example in enumerate(test):
-                if lang != "en":
+                if test_lang != "en":
                     if backtranslated:
                         test[idx]['src'] = example["backtranslated_post_processed_questions"]
                     else:
@@ -311,17 +302,14 @@ class SemanticParseDataModule(pl.LightningDataModule):
 
         elif dataset == "indic-TOP":
             for idx, example in enumerate(train):
-                if lang != "en":
-                    if backtranslated:
-                        train[idx]['src'] = example["backtranslated_post_processed_questions"]
-                    else:
-                        train[idx]['src'] = example["postprocessed_translated_question"]
+                if train_lang != "en":
+                    train[idx]['src'] = example["postprocessed_translated_question"]
                 else:
                     train[idx]['src'] = example["question"]
                 train[idx]['trg'] = self.pre_process_logical_form(example["decoupled logical form"])
             
             for idx, example in enumerate(val):
-                if lang != "en":
+                if test_lang != "en":
                     if backtranslated:
                         val[idx]['src'] = example["backtranslated_post_processed_questions"]
                     else:
@@ -331,7 +319,7 @@ class SemanticParseDataModule(pl.LightningDataModule):
                 val[idx]['trg'] = self.pre_process_logical_form(example["decoupled logical form"])
 
             for idx, example in enumerate(test):
-                if lang != "en":
+                if test_lang != "en":
                     if backtranslated:
                         test[idx]['src'] = example["backtranslated_post_processed_questions"]
                     else:
@@ -343,17 +331,14 @@ class SemanticParseDataModule(pl.LightningDataModule):
 
         elif dataset == "indic-atis":
             for idx, example in enumerate(train):
-                if lang != "en":
-                    if backtranslated:
-                        train[idx]['src'] = example["backtranslated_text"]
-                    else:
-                        train[idx]['src'] = example["translated_text"]
+                if train_lang != "en":
+                    train[idx]['src'] = example["translated_text"]
                 else:
                     train[idx]['src'] = example["text"]
                 train[idx]['trg'] = self.pre_process_logical_form(example["logical form"])
             
             for idx, example in enumerate(val):
-                if lang != "en":
+                if test_lang != "en":
                     if backtranslated:
                         val[idx]['src'] = example["backtranslated_text"]
                     else:
@@ -363,7 +348,7 @@ class SemanticParseDataModule(pl.LightningDataModule):
                 val[idx]['trg'] = self.pre_process_logical_form(example["logical form"])
 
             for idx, example in enumerate(test):
-                if lang != "en":
+                if test_lang != "en":
                     if backtranslated:
                         test[idx]['src'] = example["backtranslated_text"]
                     else:
@@ -395,6 +380,7 @@ class SemanticParseDataModule(pl.LightningDataModule):
 
         padding = "max_length"
 
+        lang = self.train_lang if self.stage == "fit" else self.test_lang
         if "mt5" in tokenizer.name_or_path:
             prefix = f"Parse from {lang} to english logical from:"
         else:
@@ -427,6 +413,8 @@ class SemanticParseDataModule(pl.LightningDataModule):
         self.val_data = self.data['val']
         self.test_data = self.data['test']
 
+        self.stage = stage
+        
         if stage == "fit" or stage == None:
         
             column_names = self.train_data.column_names
@@ -436,6 +424,7 @@ class SemanticParseDataModule(pl.LightningDataModule):
                 batched=True,
                 remove_columns=column_names,
                 desc="Running tokenizer on train dataset",
+                # num_proc = self.num_workers
             )
             column_names = self.val_data.column_names
             
@@ -445,6 +434,7 @@ class SemanticParseDataModule(pl.LightningDataModule):
                 batched=True,
                 remove_columns=column_names,
                 desc="Running tokenizer on val dataset",
+                # num_proc = self.num_workers
             )
 
             if "token_type_ids" in self.train_dataset.column_names:
@@ -458,6 +448,7 @@ class SemanticParseDataModule(pl.LightningDataModule):
                 batched=True,
                 remove_columns=column_names,
                 desc="Running tokenizer on test dataset",
+                # num_proc = self.num_workers
             )
 
             if "token_type_ids" in self.test_dataset.column_names:
@@ -574,7 +565,7 @@ def exact_match(decoded_preds, decoded_labels, tokenizer):
     result = {k: round(v, 4) for k, v in result.items()}
     return round(result["exact_match"], 1)
 
-base_path = "/content/drive/MyDrive/iTOP/results"
+base_path = "results"
 
 
 def make_pth(strategy, dataset,model, lang = None):
@@ -609,7 +600,7 @@ def compute_metrics(tokenizer, decoded_preds, decoded_labels):
     result = {k: round(v, 4) for k, v in result.items()}
     return result
 
-base_path = "/content/drive/MyDrive/iTOP/results"
+# base_path = "/content/drive/MyDrive/iTOP/results"
 def make_dir(strategy, dataset,model, lang = None):
 
     
@@ -879,7 +870,7 @@ class Parser(pl.LightningModule):
                         'frequency': 1}
 
         return {
-            'optimizer': optimizer,
+             'optimizer': optimizer,
              'lr_scheduler': lr_scheduler
              }
 
@@ -1010,7 +1001,7 @@ def get_trainer(auto_scale_batch_size = False):
 
     trainer = Trainer(
                         # default_root_dir="/content/",
-                        precision=16,
+                        precision="bf16",
                         accelerator = "auto",
                         devices = "auto",
                         progress_bar_refresh_rate=5,
@@ -1045,13 +1036,15 @@ def tune(model, dm):
 
     torch.cuda.empty_cache()
 
-    dm.batch_size = new_batch_size // 4
+    new_batch_size = new_batch_size // 2
+    
+    dm.batch_size = new_batch_size
 
-    dm.batch_size = batch_sizes[model.model.name_or_path]
+    # dm.batch_size = batch_sizes[model.model.name_or_path]
 
     trainer = get_trainer()
 
-    lr_finder = trainer.tuner.lr_find(pl_model, dm)
+    lr_finder = trainer.tuner.lr_find(model, dm)
 
     # # Results can be found in
     # print(lr_finder.results)
@@ -1069,3 +1062,7 @@ def tune(model, dm):
     return model, dm
 
 
+def remove_model():
+    files = glob.glob('models/*')
+    for f in files:
+        os.remove(f)

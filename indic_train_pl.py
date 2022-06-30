@@ -8,9 +8,18 @@ import numpy as np
 
 from utils_pl import *
 
+
+batch_sizes_gpu = {
+                  'ai4bharat/IndicBART': 128,
+                  'google/mt5-base': 64, 
+                  "facebook/mbart-large-50": 32,
+                  'xlm-roberta-base': 32,
+                  "google/muril-base-cased": 32
+}
+
 seq2seq_models = [
-    'ai4bharat/IndicBART',
-    'google/mt5-base',
+    # 'ai4bharat/IndicBART',
+    # 'google/mt5-base',
     "facebook/mbart-large-50",
 ]
 
@@ -69,6 +78,7 @@ for dataset_name in dataset_names:
                 test_lang=lang,
                 tokenizer=tokenizer,
                 model=model,
+                batch_size = batch_sizes_gpu[model_checkpoint]
 
             )
 
@@ -81,15 +91,16 @@ for dataset_name in dataset_names:
                 model=model,
             )
 
-            pl_model, dm = tune(pl_model, dm)
+            # pl_model, dm = tune(pl_model, dm)
 
             trainer = get_trainer()
-            # trainer.tune(pl_model, dm)
+            trainer.tune(pl_model, dm)
 
             gc.collect()
             torch.cuda.empty_cache()
 
             trainer.fit(pl_model, dm)
+            
 
             # trainer = Trainer(
             #                   precision=16,
@@ -98,3 +109,4 @@ for dataset_name in dataset_names:
             #                   )
 
             trainer.test(pl_model, dm)
+            remove_model()

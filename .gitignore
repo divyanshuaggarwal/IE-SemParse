@@ -129,3 +129,11 @@ dmypy.json
 .pyre/
 
 results/
+models/
+.lr_find_*
+
+__pycache__
+
+.scale_batch_size_*
+
+lightning_logs/

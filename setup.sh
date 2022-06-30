@@ -18,3 +18,8 @@ git clone https://divyanshu:Wateringplants_98@huggingface.co/datasets/Divyanshu/
 
 git config --global user.email "divyanshuggrwl@gmail.com"
 git config --global user.name "divyanshuaggarwal"
+
+cp accelerate_config.yaml ~/.cache/huggingface/accelerate/default_config.yaml
+
+mkdir results/
+mkdir models/
