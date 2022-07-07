@@ -10,11 +10,12 @@ from utils_pl import *
 
 
 batch_sizes_gpu = {
-                  'ai4bharat/IndicBART': 128,
+                  'ai4bharat/IndicBART': 256,
                   'google/mt5-base': 64, 
-                  "facebook/mbart-large-50": 32,
-                  'xlm-roberta-base': 32,
-                  "google/muril-base-cased": 32
+                  "facebook/mbart-large-50": 64,
+                  "facebook/mbart-large-50-many-to-one-mmt": 64,
+                  'xlm-roberta-base': 64,
+                  "google/muril-base-cased": 64
 }
 
 seq2seq_models = [
@@ -74,8 +75,8 @@ for dataset_name in dataset_names:
             dm = SemanticParseDataModule(
                 model_name=model_checkpoint,
                 dataset=dataset_name,
-                train_lang=lang,
-                test_lang=lang,
+                train_lang="en",
+                test_lang="en",
                 tokenizer=tokenizer,
                 model=model,
                 batch_size = batch_sizes_gpu[model_checkpoint]
@@ -100,7 +101,25 @@ for dataset_name in dataset_names:
             torch.cuda.empty_cache()
 
             trainer.fit(pl_model, dm)
+
+            dm = SemanticParseDataModule(
+                model_name=model_checkpoint,
+                dataset=dataset_name,
+                train_lang=lang,
+                test_lang=lang,
+                tokenizer=tokenizer,
+                model=model,
+                batch_size = batch_sizes_gpu[model_checkpoint]
+
+            )
             
+            trainer = get_trainer()
+            trainer.tune(pl_model, dm)
+
+            gc.collect()
+            torch.cuda.empty_cache()
+
+            trainer.fit(pl_model, dm)
 
             trainer.test(pl_model, dm)
             remove_model()
