@@ -7,6 +7,7 @@ seq2seq_models = [
                   'ai4bharat/IndicBART',
                   'google/mt5-base', 
                   "facebook/mbart-large-50",
+                  "facebook/mbart-large-50-many-to-one-mmt",
                   ]
 
 encoder_models = [
@@ -37,6 +38,7 @@ batch_sizes_gpu = {
                   'ai4bharat/IndicBART': 128,
                   'google/mt5-base': 32, 
                   "facebook/mbart-large-50": 32,
+                  "facebook/mbart-large-50-many-to-one-mmt": 32,
                   'xlm-roberta-base': 32,
                   "google/muril-base-cased": 36
 }
@@ -45,6 +47,7 @@ model_lr = {
     'ai4bharat/IndicBART': 1e-3,
     'google/mt5-base': 1e-3,
     "facebook/mbart-large-50": 1e-3,
+    "facebook/mbart-large-50-many-to-one-mmt": 1e-3,
     'xlm-roberta-base': 3e-5,
     "google/muril-base-cased":3e-5
             
@@ -54,6 +57,7 @@ model_epochs_gpu = {
                   'ai4bharat/IndicBART': 10,
                   'google/mt5-base': 10, 
                   "facebook/mbart-large-50": 5,
+                  "facebook/mbart-large-50-many-to-one-mmt": 5,
                   'xlm-roberta-base': 5,
                   "google/muril-base-cased": 5
 }
