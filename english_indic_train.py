@@ -35,10 +35,10 @@ hyperparameters = {
 
 
 batch_sizes_gpu = {
-                  'ai4bharat/IndicBART': 128,
-                  'google/mt5-base': 32, 
-                  "facebook/mbart-large-50": 32,
-                  "facebook/mbart-large-50-many-to-one-mmt": 32,
+                  'ai4bharat/IndicBART': 256,
+                  'google/mt5-base': 64, 
+                  "facebook/mbart-large-50": 64,
+                  "facebook/mbart-large-50-many-to-one-mmt": 64,
                   'xlm-roberta-base': 32,
                   "google/muril-base-cased": 36
 }
@@ -56,8 +56,8 @@ model_lr = {
 model_epochs_gpu = {
                   'ai4bharat/IndicBART': 10,
                   'google/mt5-base': 10, 
-                  "facebook/mbart-large-50": 5,
-                  "facebook/mbart-large-50-many-to-one-mmt": 5,
+                  "facebook/mbart-large-50": 10,
+                  "facebook/mbart-large-50-many-to-one-mmt": 10,
                   'xlm-roberta-base': 5,
                   "google/muril-base-cased": 5
 }
@@ -92,7 +92,7 @@ def main():
                     continue
 
                 raw_dataset = create_dataset(dataset_name, "en", "en")
-                print(raw_dataset)
+                # print(raw_dataset)
 
                 tokenizer = get_tokenizer(model_checkpoint, lang)
 
@@ -120,7 +120,7 @@ def main():
                     )
 
                 raw_dataset = create_dataset(dataset_name, lang, lang)
-                print(raw_dataset)
+                # print(raw_dataset)
 
                 dataset = prepare_dataset(raw_dataset, tokenizer)
 
@@ -143,7 +143,7 @@ def main():
                             hyperparameters
                         )
 
-                remove_model()
+            remove_model()
 
 
 if __name__ == "__main__":

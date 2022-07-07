@@ -385,7 +385,7 @@ hyperparameters = {
 
 def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
     # Initialize accelerator
-    accelerator = Accelerator(mixed_precision="bf16")
+    accelerator = Accelerator()
 
     # To have only one message (and not 8) per logs of Transformers or Datasets, we set the logging verbosity
     # to INFO for the main process only.
@@ -462,9 +462,9 @@ def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
     min_val_loss = 1000000
 
     model_name = model.name_or_path if model.name_or_path else model.encoder.name_or_path
-    accelerator.print(f"================================================================")
-    accelerator.print(f"\t{model_name}\t\t\t{model.num_parameters()//1000_000} M")
-    accelerator.print(f"================================================================")
+    accelerator.print(f"===============================================================================================")
+    accelerator.print(f"\t\t{model_name}\t\t\t{model.num_parameters()//1000_000} M")
+    accelerator.print(f"===============================================================================================")
 
     for epoch in range(hyperparameters["num_epochs"]):
         # We only enable the progress bar on the main process to avoid having 8 progress bars.
@@ -535,11 +535,11 @@ def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
 
     # save trained model
     accelerator.wait_for_everyone()
-    unwrapped_model = accelerator.unwrap_model(model)
+    # unwrapped_model = accelerator.unwrap_model(model)
     # Use accelerator.save to save
-    unwrapped_model.save_pretrained(hyperparameters["output_dir"], save_function=accelerator.save)
+    # unwrapped_model.save_pretrained(hyperparameters["output_dir"], save_function=accelerator.save)
 
-    model = accelerator.unwrap_model(model)
+    # model = accelerator.unwrap_model(model)
 
 base_path = "results"
 
@@ -629,7 +629,7 @@ def exact_match(decoded_preds, decoded_labels, tokenizer):
 
 def generate(model, tokenizer, dataset, raw_dataset, technique, dataset_name, lang, hyperparameters=hyperparameters):
     
-    accelerator = Accelerator(mixed_precision="bf16")
+    accelerator = Accelerator()
 
     accelerator.print('generating predictions ........')
 
@@ -642,7 +642,7 @@ def generate(model, tokenizer, dataset, raw_dataset, technique, dataset_name, la
 
     data_loader = create_dataloaders(
                                         dataset, 
-                                        eval_batch_size=hyperparameters["eval_batch_size"], 
+                                        eval_batch_size=8, 
                                         loader_type="test",
                                         collate_fn=data_collator
                                         )
@@ -658,10 +658,7 @@ def generate(model, tokenizer, dataset, raw_dataset, technique, dataset_name, la
     progress_bar = tqdm(range(len(data_loader)), disable=not accelerator.is_main_process)
 
     for step, batch in enumerate(data_loader):
-        # accelerator.print("generating...")
-        with torch.no_grad():
-            # accelerator.print("entered in torch no grad")
-            
+        with torch.no_grad():            
         
             generated_tokens = accelerator.unwrap_model(model).generate(
                                                                             batch["input_ids"],
@@ -674,18 +671,14 @@ def generate(model, tokenizer, dataset, raw_dataset, technique, dataset_name, la
                                                                             early_stopping=True
                                                                         )
             
-            # accelerator.print("generated 1")
             generated_tokens = accelerator.pad_across_processes(
             generated_tokens, dim=1, pad_index=tokenizer.pad_token_id
             )
-            # accelerator.print("generated 2")
             generated_tokens = accelerator.gather(generated_tokens).cpu().numpy()
-            # accelerator.print("generated 3")
-            # accelerator.print("tokenizing....")
+            
 
             decoded_preds = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
 
-            # label_batch = batch['labels']
 
             label_batch = accelerator.pad_across_processes(batch["labels"], dim=1, pad_index=tokenizer.pad_token_id)
             label_batch = accelerator.gather(label_batch).cpu().numpy()
