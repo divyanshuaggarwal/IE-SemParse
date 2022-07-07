@@ -31,6 +31,7 @@ from transformers import (
                             DataCollatorForSeq2Seq,
                             get_scheduler,
                             set_seed,
+                            default_data_collator
                         )
 from torch.utils.data import DataLoader
 from torch.nn import functional as F
@@ -38,8 +39,10 @@ import sentencepiece as spm
 from datasets import load_dataset, load_metric, Dataset, DatasetDict
 import pandas as pd
 import transformers
+import Levenshtein as lev
 from tqdm import tqdm
 import argparse
+import glob
 import re
 import string
 from collections import Counter
@@ -187,7 +190,7 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated = False):
     elif dataset == "indic-atis":
         for idx, example in enumerate(train):
             if train_lang != "en":
-                train[idx]['src'] = example["translated_text"]
+                train[idx]['src'] = example["translated text"]
             else:
                 train[idx]['src'] = example["text"]
             train[idx]['trg'] = pre_process_logical_form(
@@ -198,7 +201,7 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated = False):
                 if backtranslated:
                     val[idx]['src'] = example["backtranslated_text"]
                 else:
-                    val[idx]['src'] = example["translated_text"]
+                    val[idx]['src'] = example["translated text"]
             else:
                 val[idx]['src'] = example["text"]
             val[idx]['trg'] = pre_process_logical_form(
@@ -209,7 +212,7 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated = False):
                 if backtranslated:
                     test[idx]['src'] = example["backtranslated_text"]
                 else:
-                    test[idx]['src'] = example["translated_text"]
+                    test[idx]['src'] = example["translated text"]
             else:
                 test[idx]['src'] = example["text"]
             test[idx]['trg'] = pre_process_logical_form(
@@ -336,22 +339,31 @@ def prepare_dataset(dataset, tokenizer):
     return dataset
 
 
-def create_dataloaders(dataset, train_batch_size=8, eval_batch_size=8, collate_fn=None):
-    train_dataloader = DataLoader(
-                                  dataset['train'],
-                                  shuffle=True,
-                                  batch_size=train_batch_size,
-                                  collate_fn=collate_fn
-                                  )
-    val_dataloader = DataLoader(
-                                dataset['val'],
-                                shuffle=False,
-                                batch_size=eval_batch_size,
-                                collate_fn=collate_fn
-                                )
-
-    return train_dataloader, val_dataloader
-
+def create_dataloaders(dataset, train_batch_size=1, eval_batch_size=1, loader_type= None, collate_fn=default_data_collator):
+    if loader_type == "test":
+        dataloader = DataLoader(
+                                    dataset, 
+                                    shuffle=False, 
+                                    batch_size=eval_batch_size, 
+                                    collate_fn=collate_fn
+                                    )
+        return dataloader
+        
+    else:
+        train_dataloader = DataLoader(
+                                    dataset['train'], 
+                                    shuffle=True, 
+                                    batch_size=train_batch_size, 
+                                    collate_fn=collate_fn
+                                    )
+        val_dataloader = DataLoader(
+                                    dataset['val'], 
+                                    shuffle=False, 
+                                    batch_size=eval_batch_size, 
+                                    collate_fn=collate_fn
+                                    )
+    
+        return train_dataloader, val_dataloader
 
 hyperparameters = {
     "learning_rate": 1e-3,
@@ -371,7 +383,7 @@ hyperparameters = {
 # import datasets
 
 
-def training_function(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
+def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
     # Initialize accelerator
     accelerator = Accelerator(mixed_precision="bf16")
 
@@ -389,7 +401,7 @@ def training_function(model, tokenizer, dataset, args, hyperparameters=hyperpara
     # The seed need to be set before we instantiate the model, as it will determine the random head.
     set_seed(hyperparameters["seed"])
 
-    data_collator=DataCollatorForSeq2Seq(
+    data_collator = DataCollatorForSeq2Seq(
                                         tokenizer = tokenizer,
                                         model = model,
                                         label_pad_token_id = -100,
@@ -509,9 +521,9 @@ def training_function(model, tokenizer, dataset, args, hyperparameters=hyperpara
         if val_loss < min_val_loss:
             epochs_no_improve = 0
             min_val_loss = val_loss
-            output_dir = f"epoch_{epoch}_val_loss_{val_loss}"
-            output_dir = os.path.join(hyperparameters["output_dir"], output_dir)
-            accelerator.save_state(output_dir)
+            # output_dir = f"val_loss_{val_loss}"
+            # output_dir = os.path.join(hyperparameters["output_dir"], output_dir)
+            # accelerator.save_state(output_dir)
             continue
             
         else:
@@ -543,8 +555,8 @@ def make_pth(strategy, dataset,model, lang = None):
     return path
 
 def postprocess_text(preds, labels):
-    preds = [pred.strip() for pred in preds]
-    labels = [[post_process_logical_form(label.strip())] for label in labels]
+    preds = [post_process_logical_form(pred.strip()) for pred in preds]
+    labels = [post_process_logical_form(label.strip()) for label in labels]
 
     return preds, labels
 
@@ -587,23 +599,25 @@ def f1_score(prediction, ground_truth):
     return f1
 
 
-def evaluate(gold_answers, predictions):
-    scores = exact_matches = []
+def evaluate(gold_answers, predictions, tokenizer):
+    scores = []
+    exact_matches = []
+    lev_dist = []
 
     for ground_truth, prediction in zip(gold_answers, predictions):
 
-        exact_match_metric = exact_match([prediction], [ground_truth[0]])
-        f1 = f1_score(prediction, ground_truth[0])
-    
+        exact_match_metric = exact_match([prediction], [ground_truth], tokenizer)
+        f1 = f1_score(prediction.lower(), ground_truth.lower())
+
+        dist = lev.ratio(prediction.lower(), ground_truth.lower())
+
         exact_matches.append(exact_match_metric)
-        scores.append(f1)
+        scores.append(f1)   
+        lev_dist.append(dist)
 
-    exact_matches = exact_matches[0::2]
-    scores = scores[0::2]
+    return {'exact_match': exact_matches, 'f1': scores, "levenshtein_distance": lev_dist}
 
-    return {'exact_match': exact_matches, 'f1': scores}
-
-def exact_match(decoded_preds, decoded_labels):
+def exact_match(decoded_preds, decoded_labels, tokenizer):
     
     result = metric.compute(predictions=decoded_preds, references=decoded_labels, regexes_to_ignore=[r"\s+"], ignore_case=True, ignore_punctuation=True)
     result = {"exact_match": result["exact_match"]}
@@ -613,12 +627,11 @@ def exact_match(decoded_preds, decoded_labels):
     result = {k: round(v, 4) for k, v in result.items()}
     return round(result["exact_match"], 1)
 
-
-def generate(model, tokenizer, dataset, raw_dataset, technique, dataset_name, lang):
+def generate(model, tokenizer, dataset, raw_dataset, technique, dataset_name, lang, hyperparameters=hyperparameters):
     
-    # model = AutoModelForSeq2SeqLM.from_pretrained("/content/trained_model")
-    # tokenizer.pad_token = tokenizer.eos_token
-    # tokenizer.padding_side = "left"
+    accelerator = Accelerator(mixed_precision="bf16")
+
+    accelerator.print('generating predictions ........')
 
     data_collator = DataCollatorForSeq2Seq(
                                         tokenizer=tokenizer, 
@@ -627,18 +640,12 @@ def generate(model, tokenizer, dataset, raw_dataset, technique, dataset_name, la
                                         pad_to_multiple_of=8
                                     )
 
-    data_loader = DataLoader(dataset, batch_size=1, collate_fn=data_collator)
-    
-    accelerator = Accelerator(mixed_precision="bf16")
-
-    # Initialize accelerator
-    if accelerator.is_main_process:
-        datasets.utils.logging.set_verbosity_warning()
-        transformers.utils.logging.set_verbosity_info()
-    else:
-        datasets.utils.logging.set_verbosity_error()
-        transformers.utils.logging.set_verbosity_error()
-
+    data_loader = create_dataloaders(
+                                        dataset, 
+                                        eval_batch_size=hyperparameters["eval_batch_size"], 
+                                        loader_type="test",
+                                        collate_fn=data_collator
+                                        )
     
     model, data_loader = accelerator.prepare(model, data_loader)
 
@@ -648,35 +655,39 @@ def generate(model, tokenizer, dataset, raw_dataset, technique, dataset_name, la
     preds = []
     labels = []
 
-    
+    progress_bar = tqdm(range(len(data_loader)), disable=not accelerator.is_main_process)
+
     for step, batch in enumerate(data_loader):
-        accelerator.print("generating...")
+        # accelerator.print("generating...")
         with torch.no_grad():
-            accelerator.print("entered in torch no grad")
+            # accelerator.print("entered in torch no grad")
+            
+        
             generated_tokens = accelerator.unwrap_model(model).generate(
                                                                             batch["input_ids"],
-                                                                            max_length=64,
-                                                                            num_beams=3, 
-                                                                            early_stopping=True,
-                                                                            use_cache=False,
+                                                                            attention_mask=batch["attention_mask"],
+                                                                            num_beams=3,
                                                                             do_sample=True,
+                                                                            max_length=64,
+                                                                            use_cache=False,
                                                                             num_return_sequences=1,
+                                                                            early_stopping=True
                                                                         )
             
-            accelerator.print("generated 1")
+            # accelerator.print("generated 1")
             generated_tokens = accelerator.pad_across_processes(
             generated_tokens, dim=1, pad_index=tokenizer.pad_token_id
             )
-            accelerator.print("generated 2")
+            # accelerator.print("generated 2")
             generated_tokens = accelerator.gather(generated_tokens).cpu().numpy()
-            accelerator.print("generated 3")
-            accelerator.print("tokenizing....")
+            # accelerator.print("generated 3")
+            # accelerator.print("tokenizing....")
 
             decoded_preds = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
 
-            label_batch = batch['labels']
+            # label_batch = batch['labels']
 
-            # label_batch = accelerator.pad_across_processes(batch["labels"], dim=1, pad_index=tokenizer.pad_token_id)
+            label_batch = accelerator.pad_across_processes(batch["labels"], dim=1, pad_index=tokenizer.pad_token_id)
             label_batch = accelerator.gather(label_batch).cpu().numpy()
 
             label_batch = np.where(label_batch != -100, label_batch, tokenizer.pad_token_id)
@@ -689,12 +700,15 @@ def generate(model, tokenizer, dataset, raw_dataset, technique, dataset_name, la
             preds += decoded_preds
 
             labels += decoded_labels
+
+        progress_bar.update(1)
+        progress_bar.set_postfix({'steps': step})
     
-    accelerator.print("done tokenizing")
     
     if accelerator.is_main_process:
 
-        model_name = model.name_or_path.split("/")[-1] if '/' in model.name_or_path else model.name_or_path
+        model_name = model.name_or_path if model.name_or_path else model.encoder.name_or_path
+        model_name = model_name.split("/")[-1] if '/' in model_name else model_name
 
         if technique == "crosslingual_transfer":
             pth = make_pth(technique, dataset_name, model_name, lang)
@@ -708,21 +722,17 @@ def generate(model, tokenizer, dataset, raw_dataset, technique, dataset_name, la
         save_data['predictions'] = preds
         save_data['labels'] = labels
 
-        accelerator.print(preds)
-        accelerator.print(labels)
+        save_data['trg'], _ =  postprocess_text(save_data['trg'], [])
 
-        metrics = evaluate(save_data['labels'], save_data['predictions'])
+
+        metrics = evaluate(save_data['labels'], save_data['predictions'], tokenizer)
 
         for k,v in metrics.items():
-            accelerator.print(k, len(v))
             save_data[k] = v
 
-        for k, v in save_data.items():
-            accelerator.print(k, len(v))
 
         save_dict = pd.DataFrame(save_data).to_dict("records")
 
-        accelerator.print("saving file.....")
 
         with open(f"{pth}/{lang}.json","w",encoding='utf8') as f:
             json.dump({
@@ -730,8 +740,7 @@ def generate(model, tokenizer, dataset, raw_dataset, technique, dataset_name, la
                     }, 
                     f, indent=6, ensure_ascii=False)
         
-    # accelerator.wait_for_everyone()
-
+    accelerator.wait_for_everyone()
 
 
 
@@ -743,3 +752,48 @@ def remove_model():
 
 
 
+def get_args():
+    parser = argparse.ArgumentParser(
+        description="Simple example of training script.")
+    parser.add_argument(
+        "--mixed_precision",
+        type=str,
+        default="bf16",
+        choices=["no", "fp16", "bf16"],
+        help="Whether to use mixed precision. Choose"
+        "between fp16 and bf16 (bfloat16). Bf16 requires PyTorch >= 1.10."
+        "and an Nvidia Ampere GPU.",
+    )
+    parser.add_argument("--cpu", action="store_true",
+                        help="If passed, will train on the CPU.")
+    parser.add_argument(
+        "--checkpointing_steps",
+        type=str,
+        default=None,
+        help="Whether the various states should be saved at the end of every n steps, or 'epoch' for each epoch.",
+    )
+    parser.add_argument(
+        "--resume_from_checkpoint",
+        type=str,
+        default=None,
+        help="If the training should continue from a checkpoint folder.",
+    )
+    parser.add_argument(
+        "--with_tracking",
+        action="store_true",
+        help="Whether to load in all available experiment trackers from the environment and use them for logging.",
+    )
+    parser.add_argument(
+        "--output_dir",
+        type=str,
+        default=".",
+        help="Optional save directory where all checkpoint folders will be stored. Default is the current working directory.",
+    )
+    parser.add_argument(
+        "--logging_dir",
+        type=str,
+        default="logs",
+        help="Location on where to store experiment tracking logs`",
+    )
+    args = parser.parse_args()
+    return args

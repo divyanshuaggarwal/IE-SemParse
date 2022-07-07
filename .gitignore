@@ -137,3 +137,5 @@ __pycache__
 .scale_batch_size_*
 
 lightning_logs/
+
+trained_model/
