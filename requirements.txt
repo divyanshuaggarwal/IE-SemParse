@@ -3,7 +3,7 @@ datasets==2.3.2
 numpy==1.22.2
 pandas==1.4.2
 python_Levenshtein==0.12.2
-pytorch_lightning==1.6.4
+pytorch_lightning==1.5.0
 requests==2.26.0
 sentencepiece==0.1.96
 torch==1.11.0a0+17540c5

@@ -385,7 +385,7 @@ hyperparameters = {
 
 def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
     # Initialize accelerator
-    accelerator = Accelerator()
+    accelerator = Accelerator(gradient_accumulation_steps=hyperparameters['gradient_accumulation_steps'])
 
     # To have only one message (and not 8) per logs of Transformers or Datasets, we set the logging verbosity
     # to INFO for the main process only.
@@ -475,20 +475,16 @@ def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
 
         # total_loss = 0
         for step, batch in enumerate(train_dataloader):
-            outputs = model(**batch)
-            loss = outputs.loss
-
-            # total_loss += loss.detach().float()
-            loss = loss / hyperparameters["gradient_accumulation_steps"]
-            accelerator.backward(loss)
-
-            if step % hyperparameters["gradient_accumulation_steps"] == 0 or step == len(train_dataloader) - 1:
+            with accelerator.accumulate(model):
+                outputs = model(**batch)
+                loss = outputs.loss
+                accelerator.backward(loss)
                 optimizer.step()
                 lr_scheduler.step()
                 optimizer.zero_grad()
 
-            progress_bar.update(1)
-            progress_bar.set_postfix({'loss': loss.item()})
+                progress_bar.update(1)
+                progress_bar.set_postfix({'loss': loss.item()})
             
 
         # Evaluate at the end of the epoch (distributed evaluation as we have 8 TPU cores)
