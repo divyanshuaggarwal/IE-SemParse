@@ -94,7 +94,7 @@ def main():
                 raw_dataset = create_dataset(dataset_name, "en", "en")
                 # print(raw_dataset)
 
-                tokenizer = get_tokenizer(model_checkpoint, lang)
+                tokenizer = get_tokenizer(model_checkpoint, "en")
 
                 if model_checkpoint in encoder_models:
                     model = get_model(model_checkpoint,
@@ -103,11 +103,11 @@ def main():
                 else:
                     model = get_model(model_checkpoint, tokenizer, lang)
 
-                english_dataset = prepare_dataset(raw_dataset, tokenizer)
+                english_dataset = prepare_dataset(raw_dataset, dataset_name, tokenizer, "en", "en")
 
-                hyperparameters['train_batch_size'] = batch_sizes_gpu[model_checkpoint] if torch.cuda.is_available() else batch_sizes_tpu[model_checkpoint]
-                hyperparameters['eval_batch_size'] = batch_sizes_gpu[model_checkpoint] if torch.cuda.is_available() else batch_sizes_tpu[model_checkpoint]
-                hyperparameters['num_epochs'] = model_epochs_gpu[model_checkpoint] if torch.cuda.is_available() else model_epochs_tpu[model_checkpoint]
+                hyperparameters['train_batch_size'] = batch_sizes_gpu[model_checkpoint]
+                hyperparameters['eval_batch_size'] = batch_sizes_gpu[model_checkpoint]
+                hyperparameters['num_epochs'] = model_epochs_gpu[model_checkpoint]
                 hyperparameters["learning_rate"] = model_lr[model_checkpoint]
 
 
@@ -119,10 +119,12 @@ def main():
                         hyperparameters
                     )
 
+                tokenizer = get_tokenizer(model_checkpoint, lang, lang)
+                
                 raw_dataset = create_dataset(dataset_name, lang, lang)
-                # print(raw_dataset)
 
-                dataset = prepare_dataset(raw_dataset, tokenizer)
+                dataset = prepare_dataset(
+                    raw_dataset, dataset_name, tokenizer, lang, lang)
 
                 train(
                         model, 

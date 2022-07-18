@@ -262,9 +262,6 @@ def preprocess(examples, tokenizer):
     return model_inputs
 
 
-model_checkpoint = "facebook/bart-base"
-
-
 def get_tokenizer(model_checkpoint, lang):
     tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, cache_dir = "models/")
     tokenizer.bos_token = "<s>"
@@ -279,12 +276,12 @@ def get_tokenizer(model_checkpoint, lang):
 
     tokenizer.model_max_length = 64
         # Define label pad token id
-    label_pad_token_id = -100
+    # label_pad_token_id = -100
     padding = True
 
-    if "mbart" in model_checkpoint:
-        tokenizer.src_lang = mbart_dict[lang]
-        tokenizer.tgt_lang = "en_XX"
+    # if "mbart" in model_checkpoint:
+    #     tokenizer.src_lang = mbart_dict[lang]
+    #     tokenizer.tgt_lang = "en_XX"
 
     return tokenizer
 
@@ -327,9 +324,28 @@ def get_model(model_checkpoint, tokenizer, lang, encoder_decoder=False):
     return model
 
 
-def prepare_dataset(dataset, tokenizer):
-    dataset = dataset.map(lambda x: preprocess(
-        x, tokenizer), batched=True, remove_columns=dataset['train'].column_names, )
+def prepare_dataset(dataset, dataset_name, tokenizer, train_lang = "en", test_lang = "en"):
+    
+    if "atis" in dataset_name:
+        tokenizer.max_target_length = 128
+        tokenizer.max_source_length = 128
+    
+    if "mbart" in tokenizer.name_or_path:
+        tokenizer.src_lang = mbart_dict[train_lang]
+        tokenizer.tgt_lang = "en_XX"
+    
+    dataset['train'] = dataset['train'].map(lambda x: preprocess(
+        x, tokenizer), batched=True, remove_columns=dataset['train'].column_names, desc="Preprocessing Train Data")
+    
+    if "mbart" in tokenizer.name_or_path:
+        tokenizer.src_lang = mbart_dict[test_lang]
+        tokenizer.tgt_lang = "en_XX"
+        
+    dataset['val'] = dataset['val'].map(lambda x: preprocess(
+        x, tokenizer), batched=True, remove_columns=dataset['train'].column_names, desc="Preprocessing Train Data")
+    
+    dataset['test'] = dataset['train'].map(lambda x: preprocess(
+        x, tokenizer), batched=True, remove_columns=dataset['train'].column_names, desc="Preprocessing Train Data")
 
     if "token_type_ids" in dataset['train'].column_names:
         dataset['train'] = dataset['train'].remove_columns("token_type_ids")
