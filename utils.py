@@ -286,7 +286,7 @@ def get_tokenizer(model_checkpoint, lang):
     return tokenizer
 
 
-def get_model(model_checkpoint, tokenizer, lang, encoder_decoder=False):
+def get_model(model_checkpoint, tokenizer, encoder_decoder=False):
 
     if encoder_decoder:
         model = EncoderDecoderModel.from_encoder_decoder_pretrained(
@@ -314,17 +314,17 @@ def get_model(model_checkpoint, tokenizer, lang, encoder_decoder=False):
     else:
         model.resize_token_embeddings(len(tokenizer))
 
-    if "mbart" in model_checkpoint:
-        model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[lang]]
+    # if "mbart" in model_checkpoint:
+    #     model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[lang]]
 
-    else:
-        model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(
-            lang)
+    # else:
+    #     model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(
+    #         lang)
 
     return model
 
 
-def prepare_dataset(dataset, dataset_name, tokenizer, train_lang = "en", test_lang = "en"):
+def prepare_dataset(dataset, dataset_name, tokenizer, model, train_lang = "en", test_lang = "en"):
     
     if "atis" in dataset_name:
         tokenizer.max_target_length = 128
@@ -333,6 +333,11 @@ def prepare_dataset(dataset, dataset_name, tokenizer, train_lang = "en", test_la
     if "mbart" in tokenizer.name_or_path:
         tokenizer.src_lang = mbart_dict[train_lang]
         tokenizer.tgt_lang = "en_XX"
+        model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[lang]]
+
+    else:
+        model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(
+            lang)
     
     dataset['train'] = dataset['train'].map(lambda x: preprocess(
         x, tokenizer), batched=True, remove_columns=dataset['train'].column_names, desc="Preprocessing Train Data")

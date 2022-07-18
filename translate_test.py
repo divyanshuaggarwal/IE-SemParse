@@ -16,7 +16,11 @@ encoder_models = [
     #   "google/muril-base-cased"
 ]
 
-dataset_names = ["itop", "indic-TOP", "indic-atis"]
+dataset_names = [
+                    "itop", 
+                    "indic-TOP", 
+                    # "indic-atis"
+]
 
 INDIC = ['hi', 'bn', 'mr', 'as', 'ta', 'te', 'or', 'ml', 'pa', 'gu', 'kn']
 
@@ -137,9 +141,9 @@ def main():
             raw_dataset = create_dataset(
                 dataset_name, "en", "en")
 
-            print(raw_dataset['train'][0])
-            print(raw_dataset['val'][0])
-            print(raw_dataset['test'][0])
+            # print(raw_dataset['train'][0])
+            # print(raw_dataset['val'][0])
+            # print(raw_dataset['test'][0])
 
             tokenizer = get_tokenizer(model_checkpoint, "en")
 
@@ -148,10 +152,10 @@ def main():
                                     tokenizer, lang, encoder_decoder=True)
 
             else:
-                model = get_model(model_checkpoint, tokenizer, lang)
+                model = get_model(model_checkpoint, tokenizer)
 
             dataset = prepare_dataset(
-                raw_dataset, dataset_name, tokenizer, "en", "en")
+                raw_dataset, dataset_name, tokenizer, model, "en", "en")
 
             hyperparameters['train_batch_size'] = batch_sizes_gpu[model_checkpoint]
             hyperparameters['eval_batch_size'] = batch_sizes_gpu[model_checkpoint]
@@ -171,9 +175,10 @@ def main():
                 raw_dataset = create_dataset(
                     dataset_name, lang, lang, True)
                 
-                print(raw_dataset['train'][0])
-                print(raw_dataset['val'][0])
-                print(raw_dataset['test'][0])
+                dataset = prepare_dataset(raw_dataset, dataset_name, tokenizer, "en", "en")
+                # print(raw_dataset['train'][0])
+                # print(raw_dataset['val'][0])
+                # print(raw_dataset['test'][0])
 
                 
                 generate(
