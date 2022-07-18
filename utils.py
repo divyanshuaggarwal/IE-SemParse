@@ -347,12 +347,12 @@ def prepare_dataset(dataset, dataset_name, tokenizer, model, train_lang = "en", 
         tokenizer.tgt_lang = "en_XX"
         model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[test_lang]]
 
-        
+
     dataset['val'] = dataset['val'].map(lambda x: preprocess(
-        x, tokenizer), batched=True, remove_columns=dataset['train'].column_names, desc="Preprocessing Train Data")
+        x, tokenizer), batched=True, remove_columns=dataset['val'].column_names, desc="Preprocessing Val Data")
     
-    dataset['test'] = dataset['train'].map(lambda x: preprocess(
-        x, tokenizer), batched=True, remove_columns=dataset['train'].column_names, desc="Preprocessing Train Data")
+    dataset['test'] = dataset['test'].map(lambda x: preprocess(
+        x, tokenizer), batched=True, remove_columns=dataset['test'].column_names, desc="Preprocessing Test Data")
 
     if "token_type_ids" in dataset['train'].column_names:
         dataset['train'] = dataset['train'].remove_columns("token_type_ids")
