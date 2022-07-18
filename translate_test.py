@@ -119,14 +119,14 @@ def get_args():
 
 def main():
     args = get_args()
-    if "indic_train" not in os.listdir(base_path):
-        os.mkdir(os.path.join(base_path, "indic_train"))
+    if "translate_test" not in os.listdir(base_path):
+        os.mkdir(os.path.join(base_path, "translate_test"))
 
     for dataset_name in dataset_names:
         print(f"dataset:{dataset_name}")
 
-        if dataset_name not in os.listdir(f"{base_path}/indic_train/"):
-            os.mkdir(f"{base_path}/indic_train/{dataset_name}")
+        if dataset_name not in os.listdir(f"{base_path}/translate_test/"):
+            os.mkdir(f"{base_path}/translate_test/{dataset_name}")
 
         for model_checkpoint in list(seq2seq_models + encoder_models):
             model_name = model_checkpoint.split(
@@ -134,9 +134,9 @@ def main():
 
             print(f"model:{model_name}")
 
-            if model_name not in os.listdir(f"{base_path}/indic_train/{dataset_name}/"):
+            if model_name not in os.listdir(f"{base_path}/translate_test/{dataset_name}/"):
                 os.mkdir(
-                    f"{base_path}/indic_train/{dataset_name}/{model_name}")
+                    f"{base_path}/translate_test/{dataset_name}/{model_name}")
             
             raw_dataset = create_dataset(
                 dataset_name, "en", "en")
@@ -168,7 +168,7 @@ def main():
             for lang in INDIC:
                 print(f"language:{lang}")
 
-                if f"{lang}.json" in os.listdir(f"{base_path}/indic_train/{dataset_name}/{model_name}/"):
+                if f"{lang}.json" in os.listdir(f"{base_path}/translate_test/{dataset_name}/{model_name}/"):
                     print("Skipping.......")
                     continue
                 
@@ -182,7 +182,7 @@ def main():
 
                 
                 generate(
-                    model, tokenizer, dataset['test'], raw_dataset['test'], "indic_train", dataset_name, lang)
+                    model, tokenizer, dataset['test'], raw_dataset['test'], "translate_test", dataset_name, lang)
 
                 remove_model()
 
