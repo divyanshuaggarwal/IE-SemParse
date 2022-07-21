@@ -1,4 +1,4 @@
-from curses import raw
+from pprint import pprint
 from utils import *
 
 
@@ -53,8 +53,8 @@ batch_sizes_gpu = {
 model_lr = {
     'ai4bharat/IndicBART': 1e-3,
     'google/mt5-base': 1e-3,
-    "facebook/mbart-large-50": 1e-3,
-    "facebook/mbart-large-50-many-to-one-mmt": 1e-3,
+    "facebook/mbart-large-50": 1e-4,
+    "facebook/mbart-large-50-many-to-one-mmt": 1e-4,
     'xlm-roberta-base': 3e-5,
     "google/muril-base-cased": 3e-5
 
@@ -63,8 +63,8 @@ model_lr = {
 model_epochs_gpu = {
     'ai4bharat/IndicBART': 10,
     'google/mt5-base': 10,
-    "facebook/mbart-large-50": 10,
-    "facebook/mbart-large-50-many-to-one-mmt": 10,
+    "facebook/mbart-large-50": 13,
+    "facebook/mbart-large-50-many-to-one-mmt": 13,
     'xlm-roberta-base': 5,
     "google/muril-base-cased": 5
 }
@@ -134,10 +134,16 @@ def main():
 
             print(f"model:{model_name}")
 
-            if model_name not in os.listdir(f"{base_path}/translate_test/{dataset_name}/"):
+            
+            
+            if model_name in os.listdir(f"{base_path}/translate_test/{dataset_name}/"):
+                if len(os.listdir(f"{base_path}/translate_test/{dataset_name}/{model_name}")) == len(INDIC):
+                    continue
+            
+            else:
                 os.mkdir(
                     f"{base_path}/translate_test/{dataset_name}/{model_name}")
-            
+
             raw_dataset = create_dataset(
                 dataset_name, "en", "en")
 
@@ -162,6 +168,7 @@ def main():
             hyperparameters['num_epochs'] = model_epochs_gpu[model_checkpoint]
             hyperparameters["learning_rate"] = model_lr[model_checkpoint]
 
+            pprint(hyperparameters)
             train(model, tokenizer, dataset,
                     args, hyperparameters)
 
@@ -175,7 +182,8 @@ def main():
                 raw_dataset = create_dataset(
                     dataset_name, lang, lang, True)
                 
-                dataset = prepare_dataset(raw_dataset, dataset_name, tokenizer, "en", "en")
+                dataset = prepare_dataset(raw_dataset, dataset_name, tokenizer, model, "en", "en")
+
                 # print(raw_dataset['train'][0])
                 # print(raw_dataset['val'][0])
                 # print(raw_dataset['test'][0])

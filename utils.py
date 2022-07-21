@@ -86,7 +86,8 @@ mbart_dict = {
     "ml": "ml_IN",
     "pa": "hi_IN",
     "gu": "gu_IN",
-    "kn": "te_IN"
+    "kn": "te_IN",
+    "en": "en_XX"
 }
 
 INDIC = ['hi','bn','mr','as','ta','te','or','ml','pa','gu','kn']
@@ -333,33 +334,36 @@ def prepare_dataset(dataset, dataset_name, tokenizer, model, train_lang = "en", 
     if "mbart" in tokenizer.name_or_path:
         tokenizer.src_lang = mbart_dict[train_lang]
         tokenizer.tgt_lang = "en_XX"
-        model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[train_lang]]
+        # model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[train_lang]]
 
     # else:
-    #     model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(
-    #         train_lang)
+    #     model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(train_lang)
+
+    new_dataset = DatasetDict()
     
-    dataset['train'] = dataset['train'].map(lambda x: preprocess(
+    new_dataset['train'] = dataset['train'].map(lambda x: preprocess(
         x, tokenizer), batched=True, remove_columns=dataset['train'].column_names, desc="Preprocessing Train Data")
     
     if "mbart" in tokenizer.name_or_path:
         tokenizer.src_lang = mbart_dict[test_lang]
         tokenizer.tgt_lang = "en_XX"
-        model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[test_lang]]
+        # model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[test_lang]]
+    # else:
+    #     model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(test_lang)
 
 
-    dataset['val'] = dataset['val'].map(lambda x: preprocess(
+    new_dataset['val'] = dataset['val'].map(lambda x: preprocess(
         x, tokenizer), batched=True, remove_columns=dataset['val'].column_names, desc="Preprocessing Val Data")
     
-    dataset['test'] = dataset['test'].map(lambda x: preprocess(
+    new_dataset['test'] = dataset['test'].map(lambda x: preprocess(
         x, tokenizer), batched=True, remove_columns=dataset['test'].column_names, desc="Preprocessing Test Data")
 
-    if "token_type_ids" in dataset['train'].column_names:
-        dataset['train'] = dataset['train'].remove_columns("token_type_ids")
-        dataset['val'] = dataset['val'].remove_columns("token_type_ids")
-        dataset['test'] = dataset['test'].remove_columns("token_type_ids")
+    if "token_type_ids" in new_dataset['train'].column_names:
+        new_dataset['train'] = new_dataset['train'].remove_columns("token_type_ids")
+        new_dataset['val'] = new_dataset['val'].remove_columns("token_type_ids")
+        new_dataset['test'] = new_dataset['test'].remove_columns("token_type_ids")
 
-    return dataset
+    return new_dataset
 
 
 def create_dataloaders(dataset, train_batch_size=1, eval_batch_size=1, loader_type= None, collate_fn=default_data_collator):
@@ -680,15 +684,15 @@ def generate(model, tokenizer, dataset, raw_dataset, technique, dataset_name, la
         with torch.no_grad():            
         
             generated_tokens = accelerator.unwrap_model(model).generate(
-                                                                            batch["input_ids"],
-                                                                            attention_mask=batch["attention_mask"],
-                                                                            num_beams=3,
-                                                                            do_sample=True,
-                                                                            max_length=64,
-                                                                            use_cache=False,
-                                                                            num_return_sequences=1,
-                                                                            early_stopping=True
-                                                                        )
+                                                batch["input_ids"],
+                                                attention_mask=batch["attention_mask"],
+                                                num_beams=3,
+                                                do_sample=True,
+                                                max_length=64,
+                                                use_cache=True,
+                                                num_return_sequences=1,
+                                                early_stopping=True
+                                             )
             
             generated_tokens = accelerator.pad_across_processes(
             generated_tokens, dim=1, pad_index=tokenizer.pad_token_id
