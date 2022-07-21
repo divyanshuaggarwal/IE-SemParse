@@ -1,4 +1,4 @@
-git+https://github.com/huggingface/accelerate.git
+accelerate==0.11.0
 datasets==2.3.2
 numpy==1.22.2
 pandas==1.4.2
