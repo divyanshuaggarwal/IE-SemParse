@@ -242,7 +242,7 @@ def preprocess(examples, tokenizer):
     padding = "max_length"
 
     if "mt5" in tokenizer.name_or_path:
-        prefix = f"Parse to english logical from:"
+        prefix = f"Parse to english logical form:"
     else:
         prefix = ""
 
