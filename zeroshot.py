@@ -1,5 +1,5 @@
 from utils import *
-
+from pprint import pprint
 
 # """# Define Training Parameters"""
 
@@ -50,8 +50,8 @@ batch_sizes_gpu = {
 }
 
 model_lr = {
-    'ai4bharat/IndicBART': 1e-3,
-    'google/mt5-base': 1e-3,
+    'ai4bharat/IndicBART': 1e-4,
+    'google/mt5-base': 1e-4,
     "facebook/mbart-large-50": 1e-4,
     "facebook/mbart-large-50-many-to-one-mmt": 1e-4,
     'xlm-roberta-base': 3e-5,
@@ -62,8 +62,8 @@ model_lr = {
 model_epochs_gpu = {
     'ai4bharat/IndicBART': 10,
     'google/mt5-base': 10,
-    "facebook/mbart-large-50": 13,
-    "facebook/mbart-large-50-many-to-one-mmt": 13,
+    "facebook/mbart-large-50": 10,
+    "facebook/mbart-large-50-many-to-one-mmt": 10,
     'xlm-roberta-base': 5,
     "google/muril-base-cased": 5
 }
@@ -146,31 +146,31 @@ def main():
 
                 raw_dataset = create_dataset(dataset_name, "en", lang)
 
+                # pprint(raw_dataset['train'][0])
+                # pprint(raw_dataset['val'][0])
+                # pprint(raw_dataset['test'][0])
+
                 tokenizer = get_tokenizer(model_checkpoint, "en")
 
                 if model_checkpoint in encoder_models:
-                    model = get_model(model_checkpoint,
-                                      tokenizer, lang, encoder_decoder=True)
+                    model = get_model(model_checkpoint, tokenizer, lang, encoder_decoder=True)
 
                 else:
-                    model = get_model(model_checkpoint, tokenizer, "en")
+                    model = get_model(model_checkpoint, tokenizer)
 
-                dataset = prepare_dataset(
-                    raw_dataset, tokenizer, dataset_name, "en", lang)
+                dataset = prepare_dataset(raw_dataset, dataset_name, tokenizer, model, "en", lang)
                 
                 hyperparameters['train_batch_size'] = batch_sizes_gpu[model_checkpoint]
                 hyperparameters['eval_batch_size'] = batch_sizes_gpu[model_checkpoint]
                 hyperparameters['num_epochs'] = model_epochs_gpu[model_checkpoint]
                 hyperparameters["learning_rate"] = model_lr[model_checkpoint]
 
-                train(model, tokenizer, dataset,
-                                  args, hyperparameters)
+                train(model, tokenizer, dataset, args, hyperparameters)
 
                 # notebook_launcher(_train, use_fp16 = True)
 
                 # def _generate():
-                generate(
-                    model, tokenizer, dataset['test'], raw_dataset['test'], "english_train", dataset_name, lang)
+                generate(model, tokenizer, dataset['test'], raw_dataset['test'], "english_train", dataset_name, lang)
 
                 # notebook_launcher(_generate, use_fp16 = True)
                 remove_model()
