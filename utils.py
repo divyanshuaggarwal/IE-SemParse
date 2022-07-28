@@ -686,8 +686,7 @@ def generate(model, tokenizer, dataset, raw_dataset, technique, dataset_name, la
             generated_tokens = accelerator.unwrap_model(model).generate(
                                                 batch["input_ids"],
                                                 attention_mask=batch["attention_mask"],
-                                                num_beams=3,
-                                                do_sample=True,
+                                                num_beams=2,
                                                 max_length=64,
                                                 use_cache=True,
                                                 num_return_sequences=1,
