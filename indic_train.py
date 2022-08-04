@@ -4,8 +4,8 @@ from utils import *
 # """# Define Training Parameters"""
 
 seq2seq_models = [ 
-                #   'ai4bharat/IndicBART',
-                #   'google/mt5-base', 
+                  'ai4bharat/IndicBART',
+                  'google/mt5-base', 
                   "facebook/mbart-large-50",
                   ]
 
@@ -34,9 +34,9 @@ hyperparameters = {
 
 
 batch_sizes_gpu = {
-                  'ai4bharat/IndicBART': 128,
+                  'ai4bharat/IndicBART': 512,
                   'google/mt5-base': 64, 
-                  "facebook/mbart-large-50": 32,
+                  "facebook/mbart-large-50": 72,
                   'xlm-roberta-base': 32,
                   "google/muril-base-cased": 32
 }
@@ -137,16 +137,15 @@ def main():
                 raw_dataset = create_dataset(dataset_name, lang, lang)
 
                 tokenizer = get_tokenizer(model_checkpoint, lang)
-
+                
                 if model_checkpoint in encoder_models:
-                    model = get_model(model_checkpoint,
-                                      tokenizer, lang, encoder_decoder=True)
+                    model = get_model(model_checkpoint, tokenizer, lang, encoder_decoder=True)
 
                 else:
-                    model = get_model(model_checkpoint, tokenizer, lang)
+                    model = get_model(model_checkpoint, tokenizer)
 
                 dataset = prepare_dataset(
-                    raw_dataset, tokenizer, dataset_name, lang, lang)
+                    raw_dataset,  dataset_name, tokenizer, model, lang, lang)
                 
                 hyperparameters['train_batch_size'] = batch_sizes_gpu[model_checkpoint]
                 hyperparameters['eval_batch_size'] = batch_sizes_gpu[model_checkpoint]
