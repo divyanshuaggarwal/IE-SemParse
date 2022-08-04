@@ -334,10 +334,10 @@ def prepare_dataset(dataset, dataset_name, tokenizer, model, train_lang = "en", 
     if "mbart" in tokenizer.name_or_path:
         tokenizer.src_lang = mbart_dict[train_lang]
         tokenizer.tgt_lang = "en_XX"
-        # model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[train_lang]]
+        model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[train_lang]]
 
-    # else:
-    #     model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(train_lang)
+    else:
+        model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(train_lang)
 
     new_dataset = DatasetDict()
     
@@ -347,9 +347,9 @@ def prepare_dataset(dataset, dataset_name, tokenizer, model, train_lang = "en", 
     if "mbart" in tokenizer.name_or_path:
         tokenizer.src_lang = mbart_dict[test_lang]
         tokenizer.tgt_lang = "en_XX"
-        # model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[test_lang]]
-    # else:
-    #     model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(test_lang)
+        model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[test_lang]]
+    else:
+        model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(test_lang)
 
 
     new_dataset['val'] = dataset['val'].map(lambda x: preprocess(
