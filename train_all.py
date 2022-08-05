@@ -1,6 +1,6 @@
 from pprint import pprint
 from utils import *
-from datasets import concatenate_datasets
+from datasets import concatenate_datasets, DatasetDict
 
 
 # """# Define Training Parameters"""
@@ -43,7 +43,7 @@ hyperparameters = {
 
 
 batch_sizes_gpu = {
-    'ai4bharat/IndicBART': 300,
+    'ai4bharat/IndicBART': 256,
     'google/mt5-base': 64,
     "facebook/mbart-large-50": 64,
     "facebook/mbart-large-50-many-to-one-mmt": 64,
@@ -68,6 +68,15 @@ model_epochs_gpu = {
     "facebook/mbart-large-50-many-to-one-mmt": 13,
     'xlm-roberta-base': 5,
     "google/muril-base-cased": 5
+}
+
+model_patience = {
+    'ai4bharat/IndicBART': 2,
+    'google/mt5-base': 1,
+    "facebook/mbart-large-50": 1,
+    "facebook/mbart-large-50-many-to-one-mmt": 1,
+    'xlm-roberta-base': 1,
+    "google/muril-base-cased": 1
 }
 
 
@@ -132,10 +141,18 @@ def make_combined_dataset(dataset_name, model_checkpoint):
             model = get_model(model_checkpoint, tokenizer)
 
         dataset = prepare_dataset(
-            raw_dataset,  dataset_name, tokenizer, model, lang, lang)
+            raw_dataset, dataset_name, tokenizer, model, lang, lang)
         datasets.append(dataset)
 
-    return concatenate_datasets(datasets)
+
+    final_dataset = DatasetDict()
+
+    final_dataset['train'] = concatenate_datasets([dataset['train'] for dataset in datasets])
+    final_dataset['val'] = concatenate_datasets([dataset['val'] for dataset in datasets])
+    final_dataset['test'] = concatenate_datasets([dataset['test'] for dataset in datasets])
+    
+
+    return final_dataset
 
 
 def main():
@@ -182,6 +199,7 @@ def main():
             hyperparameters['eval_batch_size'] = batch_sizes_gpu[model_checkpoint]
             hyperparameters['num_epochs'] = model_epochs_gpu[model_checkpoint]
             hyperparameters["learning_rate"] = model_lr[model_checkpoint]
+            hyperparameters["patience"] = model_patience[model_checkpoint]
 
             pprint(hyperparameters)
             train(model, tokenizer, dataset, args, hyperparameters)
