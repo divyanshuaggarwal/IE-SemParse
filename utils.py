@@ -287,7 +287,7 @@ def get_tokenizer(model_checkpoint, lang):
     return tokenizer
 
 
-def get_model(model_checkpoint, tokenizer, encoder_decoder=False):
+def get_model(model_checkpoint, tokenizer, lang, encoder_decoder=False):
 
     if encoder_decoder:
         model = EncoderDecoderModel.from_encoder_decoder_pretrained(

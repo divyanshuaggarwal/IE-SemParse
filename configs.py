@@ -20,7 +20,7 @@ dataset_names = [
                     "indic-atis"
 ]
 
-INDIC = ['hi', 'bn', 'mr', 'as', 'ta', 'te', 'or', 'ml', 'pa', 'gu', 'kn']
+INDIC = ['en', 'hi', 'bn', 'mr', 'as', 'ta', 'te', 'or', 'ml', 'pa', 'gu', 'kn']
 
 hyperparameters = {
     "learning_rate": 1e-3,

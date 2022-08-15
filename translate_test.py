@@ -46,7 +46,7 @@ def main():
                                     tokenizer, lang, encoder_decoder=True)
 
             else:
-                model = get_model(model_checkpoint, tokenizer)
+                model = get_model(model_checkpoint, tokenizer, lang)
 
             dataset = prepare_dataset(
                 raw_dataset, dataset_name, tokenizer, model, "en", "en")
