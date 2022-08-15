@@ -100,7 +100,7 @@ def main():
                 generate(
                     model, tokenizer, dataset['test'], raw_dataset['test'], "train_all", dataset_name, lang)
 
-                remove_model()
+            remove_model()
 
 
 if __name__ == "__main__":

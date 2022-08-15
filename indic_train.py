@@ -58,7 +58,7 @@ def main():
                     model, tokenizer, dataset['test'], raw_dataset['test'], "indic_train", dataset_name, lang)
 
                 # notebook_launcher(_generate, use_fp16 = True)
-                remove_model()
+            remove_model()
 
 
 if __name__ == "__main__":
