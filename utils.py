@@ -200,7 +200,7 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated = False):
         for idx, example in enumerate(val):
             if test_lang != "en":
                 if backtranslated:
-                    val[idx]['src'] = example["backtranslated_text"]
+                    val[idx]['src'] = example["back translated text"]
                 else:
                     val[idx]['src'] = example["translated text"]
             else:
@@ -211,7 +211,7 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated = False):
         for idx, example in enumerate(test):
             if test_lang != "en":
                 if backtranslated:
-                    test[idx]['src'] = example["backtranslated_text"]
+                    test[idx]['src'] = example["back translated text"]
                 else:
                     test[idx]['src'] = example["translated text"]
             else:
