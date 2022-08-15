@@ -277,12 +277,12 @@ def get_tokenizer(model_checkpoint, lang):
 
     tokenizer.model_max_length = 64
         # Define label pad token id
-    # label_pad_token_id = -100
+    label_pad_token_id = -100
     padding = True
 
-    # if "mbart" in model_checkpoint:
-    #     tokenizer.src_lang = mbart_dict[lang]
-    #     tokenizer.tgt_lang = "en_XX"
+    if "mbart" in model_checkpoint:
+        tokenizer.src_lang = mbart_dict[lang]
+        tokenizer.tgt_lang = "en_XX"
 
     return tokenizer
 
@@ -315,12 +315,12 @@ def get_model(model_checkpoint, tokenizer, encoder_decoder=False):
     else:
         model.resize_token_embeddings(len(tokenizer))
 
-    # if "mbart" in model_checkpoint:
-    #     model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[lang]]
+    if "mbart" in model_checkpoint:
+        model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[lang]]
 
-    # else:
-    #     model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(
-    #         lang)
+    else:
+        model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(
+            lang)
 
     return model
 
