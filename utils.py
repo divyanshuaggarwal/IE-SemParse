@@ -246,10 +246,10 @@ def preprocess(examples, tokenizer):
     inputs = [prefix + example for example in examples['src']]
     targets = [example for example in examples['trg']]
     model_inputs = tokenizer(
-        inputs, max_length=max_source_length, padding="max_length", truncation=True)
+        inputs, max_length = tokenizer.max_source_length, padding="max_length", truncation=True)
 
     with tokenizer.as_target_tokenizer():
-        labels = tokenizer(targets, max_length=max_target_length,
+        labels = tokenizer(targets, max_length = tokenizer.max_target_length,
                            padding="max_length", truncation=True)
 
     labels["input_ids"] = [
@@ -272,10 +272,10 @@ def get_tokenizer(model_checkpoint, lang):
     tokenizer.add_tokens(['[', ']', 'SL:', "IN:"] +
                          [f'<2{lang}>' for lang in INDIC])
 
-    # tokenizer.model_max_length = 64
+    tokenizer.model_max_length = 128
         # Define label pad token id
-    # label_pad_token_id = -100
-    # padding = True
+    label_pad_token_id = -100
+    padding = True
 
     if "mbart" in model_checkpoint:
         tokenizer.src_lang = mbart_dict[lang]
@@ -284,7 +284,7 @@ def get_tokenizer(model_checkpoint, lang):
     return tokenizer
 
 
-def get_model(model_checkpoint, dataset_name, tokenizer, lang, encoder_decoder=False):
+def get_model(model_checkpoint, tokenizer, lang, encoder_decoder=False):
 
     if encoder_decoder:
         model = EncoderDecoderModel.from_encoder_decoder_pretrained(
@@ -298,10 +298,7 @@ def get_model(model_checkpoint, dataset_name, tokenizer, lang, encoder_decoder=F
         model.config.eos_token_id = tokenizer.eos_token_id
         model.config.pad_token_id = tokenizer.pad_token_id
         
-        if "atis" in dataset_name:
-            model.config.max_length = 128
-        else:
-            model.config.max_length = 64
+        model.config.max_length = 128
             
         model.config.early_stopping = True
         model.config.no_repeat_ngram_size = 1
@@ -316,29 +313,29 @@ def get_model(model_checkpoint, dataset_name, tokenizer, lang, encoder_decoder=F
     else:
         model.resize_token_embeddings(len(tokenizer))
 
-    if "mbart" in model_checkpoint:
-        model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[lang]]
+#     if "mbart" in model_checkpoint:
+#         model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[lang]]
 
-    else:
-        model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(
-            lang)
+#     else:
+#         model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(
+#             lang)
 
     return model
 
 
 def prepare_dataset(dataset, dataset_name, tokenizer, model, train_lang = "en", test_lang = "en"):
     
-    if "atis" in dataset_name:
-        tokenizer.max_target_length = 128
-        tokenizer.max_source_length = 128
+    
+    tokenizer.max_target_length = 128
+    tokenizer.max_source_length = 128
     
     if "mbart" in tokenizer.name_or_path:
         tokenizer.src_lang = mbart_dict[train_lang]
         tokenizer.tgt_lang = "en_XX"
-        model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[train_lang]]
+#         model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[train_lang]]
 
-    else:
-        model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(train_lang)
+#     else:
+#         model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(train_lang)
 
     new_dataset = DatasetDict()
     
@@ -348,9 +345,9 @@ def prepare_dataset(dataset, dataset_name, tokenizer, model, train_lang = "en", 
     if "mbart" in tokenizer.name_or_path:
         tokenizer.src_lang = mbart_dict[test_lang]
         tokenizer.tgt_lang = "en_XX"
-        model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[test_lang]]
-    else:
-        model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(test_lang)
+    #     model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[test_lang]]
+    # else:
+    #     model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(test_lang)
 
 
     new_dataset['val'] = dataset['val'].map(lambda x: preprocess(
@@ -688,7 +685,7 @@ def generate(model, tokenizer, dataset, raw_dataset, technique, dataset_name, la
                                                 batch["input_ids"],
                                                 attention_mask=batch["attention_mask"],
                                                 num_beams=2,
-                                                max_length= 128 if "atis" in dataset_name else 64,
+                                                max_length= 128,
                                                 use_cache=True,
                                                 num_return_sequences=1,
                                                 early_stopping=True

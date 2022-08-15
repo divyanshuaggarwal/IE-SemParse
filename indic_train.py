@@ -35,16 +35,16 @@ def main():
                 tokenizer = get_tokenizer(model_checkpoint, lang)
                 
                 if model_checkpoint in encoder_models:
-                    model = get_model(model_checkpoint, dataset_name, tokenizer, lang, encoder_decoder=True)
+                    model = get_model(model_checkpoint, tokenizer, lang, encoder_decoder=True)
 
                 else:
-                    model = get_model(model_checkpoint, dataset_name, tokenizer, lang)
+                    model = get_model(model_checkpoint, tokenizer, lang)
 
                 dataset = prepare_dataset(
                     raw_dataset,  dataset_name, tokenizer, model, lang, lang)
                 
-                hyperparameters['train_batch_size'] = batch_sizes_gpu[model_checkpoint]
-                hyperparameters['eval_batch_size'] = batch_sizes_gpu[model_checkpoint]
+                hyperparameters['train_batch_size'] = batch_sizes_gpu[model_checkpoint] 
+                hyperparameters['eval_batch_size'] = batch_sizes_gpu[model_checkpoint] 
                 hyperparameters['num_epochs'] = model_epochs_gpu[model_checkpoint]
                 hyperparameters["learning_rate"] = model_lr[model_checkpoint]
 
