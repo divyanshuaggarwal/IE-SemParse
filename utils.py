@@ -237,9 +237,6 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated = False):
 
 
 def preprocess(examples, tokenizer):
-    max_source_length = 64
-    max_target_length = 64
-    padding = "max_length"
 
     if "mt5" in tokenizer.name_or_path:
         prefix = f"Parse to english logical form:"
@@ -275,10 +272,10 @@ def get_tokenizer(model_checkpoint, lang):
     tokenizer.add_tokens(['[', ']', 'SL:', "IN:"] +
                          [f'<2{lang}>' for lang in INDIC])
 
-    tokenizer.model_max_length = 64
+    # tokenizer.model_max_length = 64
         # Define label pad token id
-    label_pad_token_id = -100
-    padding = True
+    # label_pad_token_id = -100
+    # padding = True
 
     if "mbart" in model_checkpoint:
         tokenizer.src_lang = mbart_dict[lang]
@@ -287,7 +284,7 @@ def get_tokenizer(model_checkpoint, lang):
     return tokenizer
 
 
-def get_model(model_checkpoint, tokenizer, lang, encoder_decoder=False):
+def get_model(model_checkpoint, dataset_name, tokenizer, lang, encoder_decoder=False):
 
     if encoder_decoder:
         model = EncoderDecoderModel.from_encoder_decoder_pretrained(
@@ -300,8 +297,12 @@ def get_model(model_checkpoint, tokenizer, lang, encoder_decoder=False):
         model.config.decoder_start_token_id = tokenizer.bos_token_id
         model.config.eos_token_id = tokenizer.eos_token_id
         model.config.pad_token_id = tokenizer.pad_token_id
-
-        model.config.max_length = 64
+        
+        if "atis" in dataset_name:
+            model.config.max_length = 128
+        else:
+            model.config.max_length = 64
+            
         model.config.early_stopping = True
         model.config.no_repeat_ngram_size = 1
         model.config.length_penalty = 2.0
@@ -687,7 +688,7 @@ def generate(model, tokenizer, dataset, raw_dataset, technique, dataset_name, la
                                                 batch["input_ids"],
                                                 attention_mask=batch["attention_mask"],
                                                 num_beams=2,
-                                                max_length=64,
+                                                max_length= 128 if "atis" in dataset_name else 64,
                                                 use_cache=True,
                                                 num_return_sequences=1,
                                                 early_stopping=True

@@ -64,11 +64,11 @@ def main():
             tokenizer = get_tokenizer(model_checkpoint, "en")
 
             if model_checkpoint in encoder_models:
-                model = get_model(model_checkpoint,
+                model = get_model(model_checkpoint, dataset_name, 
                                   tokenizer, lang, encoder_decoder=True)
 
             else:
-                model = get_model(model_checkpoint, tokenizer, lang)
+                model = get_model(model_checkpoint, dataset_name, tokenizer, lang)
 
             dataset = make_combined_dataset(dataset_name, model_checkpoint)
 
