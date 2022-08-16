@@ -43,10 +43,10 @@ def main():
 
             if model_checkpoint in encoder_models:
                 model = get_model(model_checkpoint, 
-                                    tokenizer, lang, encoder_decoder=True)
+                                    tokenizer, encoder_decoder=True)
 
             else:
-                model = get_model(model_checkpoint, tokenizer, lang)
+                model = get_model(model_checkpoint, tokenizer)
 
             dataset = prepare_dataset(
                 raw_dataset, dataset_name, tokenizer, model, "en", "en")
