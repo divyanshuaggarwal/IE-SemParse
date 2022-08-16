@@ -236,17 +236,27 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated = False):
     return dataset
 
 
-def preprocess(examples, tokenizer):
+def preprocess(examples, tokenizer, lang):
 
-    if "mt5" in tokenizer.name_or_path:
-        prefix = f"Parse to english logical form:"
+    if "mt5" in tokenizer.name_or_path.lower():
+        prefix = f"Parse from {lang} to english logical form: "
     else:
         prefix = ""
+    
+    if "indicbart" in tokenizer.name_or_path.lower():
+        suffix = f" <\s> <2{lang}>"
+    else:
+        suffix = ""
+        
 
-    inputs = [prefix + example for example in examples['src']]
+    inputs = [prefix + example + suffix for example in examples['src']]
     targets = [example for example in examples['trg']]
+    
+    
+        
     model_inputs = tokenizer(
-        inputs, max_length = tokenizer.max_source_length, padding="max_length", truncation=True)
+        inputs, max_length = tokenizer.max_source_length, padding="max_length",
+        truncation=True, add_special_tokens= False if suffix else True)
 
     with tokenizer.as_target_tokenizer():
         labels = tokenizer(targets, max_length = tokenizer.max_target_length,
@@ -340,7 +350,7 @@ def prepare_dataset(dataset, dataset_name, tokenizer, model, train_lang = "en", 
     new_dataset = DatasetDict()
     
     new_dataset['train'] = dataset['train'].map(lambda x: preprocess(
-        x, tokenizer), batched=True, remove_columns=dataset['train'].column_names, desc=f"Preprocessing {train_lang} train data")
+        x, tokenizer, train_lang), batched=True, remove_columns=dataset['train'].column_names, desc=f"Preprocessing {train_lang} train data")
     
     if "mbart" in tokenizer.name_or_path:
         tokenizer.src_lang = mbart_dict[test_lang]
@@ -351,10 +361,10 @@ def prepare_dataset(dataset, dataset_name, tokenizer, model, train_lang = "en", 
 
 
     new_dataset['val'] = dataset['val'].map(lambda x: preprocess(
-        x, tokenizer), batched=True, remove_columns=dataset['val'].column_names, desc= f"Preprocessing {test_lang} validation data")
+        x, tokenizer, test_lang), batched=True, remove_columns=dataset['val'].column_names, desc= f"Preprocessing {test_lang} validation data")
     
     new_dataset['test'] = dataset['test'].map(lambda x: preprocess(
-        x, tokenizer), batched=True, remove_columns=dataset['test'].column_names, desc=f"Preprocessing {test_lang} test data")
+        x, tokenizer, test_lang), batched=True, remove_columns=dataset['test'].column_names, desc=f"Preprocessing {test_lang} test data")
 
     if "token_type_ids" in new_dataset['train'].column_names:
         new_dataset['train'] = new_dataset['train'].remove_columns("token_type_ids")
