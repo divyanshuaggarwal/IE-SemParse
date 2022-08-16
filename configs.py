@@ -7,7 +7,7 @@ seq2seq_models = [
     'google/mt5-base',
     "facebook/mbart-large-50",
     "facebook/mbart-large-50-many-to-one-mmt",
-    "ai4bharat/IndicBART-XXEN",
+    # "ai4bharat/IndicBART-XXEN",
 ]
 
 encoder_models = [
