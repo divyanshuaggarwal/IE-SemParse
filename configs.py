@@ -6,6 +6,9 @@ seq2seq_models = [
     'ai4bharat/IndicBART',
     'google/mt5-base',
     "facebook/mbart-large-50",
+]
+
+translation_models = [
     "facebook/mbart-large-50-many-to-one-mmt",
     # "ai4bharat/IndicBART-XXEN",
 ]

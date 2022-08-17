@@ -43,7 +43,7 @@ def main():
         if dataset_name not in os.listdir(f"{base_path}/train_all/"):
             os.mkdir(f"{base_path}/train_all/{dataset_name}")
 
-        for model_checkpoint in list(seq2seq_models + encoder_models):
+        for model_checkpoint in list(seq2seq_models + encoder_models + translation_models):
             model_name = model_checkpoint.split(
                 "/")[-1] if '/' in model_checkpoint else model_checkpoint
 
