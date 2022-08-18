@@ -71,6 +71,15 @@ model_epochs_gpu = {
     "google/muril-base-cased": 5
 }
 
+model_patience = {
+    'ai4bharat/IndicBART': 2,
+    'google/mt5-base': 1,
+    "facebook/mbart-large-50": 1,
+    "facebook/mbart-large-50-many-to-one-mmt": 1,
+    'xlm-roberta-base': 1,
+    "google/muril-base-cased": 1
+}
+
 def get_args():
     parser = argparse.ArgumentParser(
         description="Simple example of training script.")
