@@ -58,7 +58,7 @@ def main():
                         hyperparameters
                     )
 
-                tokenizer = get_tokenizer(model_checkpoint, lang, lang)
+                tokenizer = get_tokenizer(model_checkpoint, lang)
                 
                 raw_dataset = create_dataset(dataset_name, lang, lang)
 

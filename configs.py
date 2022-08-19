@@ -3,14 +3,14 @@
 import argparse
 
 seq2seq_models = [
-    'ai4bharat/IndicBART',
-    'google/mt5-base',
-    "facebook/mbart-large-50",
+    # 'ai4bharat/IndicBART',
+    # 'google/mt5-base',
+    # "facebook/mbart-large-50",
 ]
 
 translation_models = [
-    "facebook/mbart-large-50-many-to-one-mmt",
-    # "ai4bharat/IndicBART-XXEN",
+    # "facebook/mbart-large-50-many-to-one-mmt",
+    "ai4bharat/IndicBART-XXEN",
 ]
 
 encoder_models = [
@@ -19,8 +19,8 @@ encoder_models = [
 ]
 
 dataset_names = [
-                    # "itop", 
-                    # "indic-TOP", 
+                    "itop", 
+                    "indic-TOP", 
                     "indic-atis"
 ]
 
@@ -44,7 +44,8 @@ hyperparameters = {
 
 
 batch_sizes_gpu = {
-    'ai4bharat/IndicBART': 128,
+    'ai4bharat/IndicBART': 144,
+    "ai4bharat/IndicBART-XXEN": 144,
     'google/mt5-base': 32,
     "facebook/mbart-large-50": 32,
     "facebook/mbart-large-50-many-to-one-mmt": 32,
@@ -54,6 +55,7 @@ batch_sizes_gpu = {
 
 model_lr = {
     'ai4bharat/IndicBART': 1e-3,
+    "ai4bharat/IndicBART-XXEN": 1e-3,
     'google/mt5-base': 1e-3,
     "facebook/mbart-large-50": 1e-4,
     "facebook/mbart-large-50-many-to-one-mmt": 1e-4,
@@ -64,6 +66,7 @@ model_lr = {
 
 model_epochs_gpu = {
     'ai4bharat/IndicBART': 20,
+    "ai4bharat/IndicBART-XXEN": 20,
     'google/mt5-base': 10,
     "facebook/mbart-large-50": 8,
     "facebook/mbart-large-50-many-to-one-mmt": 8,
@@ -73,6 +76,7 @@ model_epochs_gpu = {
 
 model_patience = {
     'ai4bharat/IndicBART': 2,
+    "ai4bharat/IndicBART-XXEN": 2,
     'google/mt5-base': 1,
     "facebook/mbart-large-50": 1,
     "facebook/mbart-large-50-many-to-one-mmt": 1,

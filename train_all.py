@@ -15,7 +15,7 @@ def make_combined_dataset(dataset_name, model_checkpoint):
                               tokenizer, lang, encoder_decoder=True)
 
         else:
-            model = get_model(model_checkpoint, tokenizer, lang)
+            model = get_model(model_checkpoint, tokenizer)
 
         dataset = prepare_dataset(
             raw_dataset, dataset_name, tokenizer, model, lang, lang)
