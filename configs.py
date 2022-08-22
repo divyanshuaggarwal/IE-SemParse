@@ -59,9 +59,9 @@ hyperparameters = {
 batch_sizes_gpu = {
     'ai4bharat/IndicBART': 144,
     "ai4bharat/IndicBART-XXEN": 144,
-    'google/mt5-base': 44,
-    "facebook/mbart-large-50": 44,
-    "facebook/mbart-large-50-many-to-one-mmt": 44,
+    'google/mt5-base': 36,
+    "facebook/mbart-large-50": 36,
+    "facebook/mbart-large-50-many-to-one-mmt": 36,
     'xlm-roberta-base': 32,
     "google/muril-base-cased": 36
 }
