@@ -3,13 +3,13 @@
 import argparse
 
 seq2seq_models = [
-    # 'ai4bharat/IndicBART',
-    # 'google/mt5-base',
-    # "facebook/mbart-large-50",
+    'ai4bharat/IndicBART',
+    'google/mt5-base',
+    "facebook/mbart-large-50",
 ]
 
 translation_models = [
-    # "facebook/mbart-large-50-many-to-one-mmt",
+    "facebook/mbart-large-50-many-to-one-mmt",
     "ai4bharat/IndicBART-XXEN",
 ]
 
@@ -24,7 +24,20 @@ dataset_names = [
                     "indic-atis"
 ]
 
-INDIC = ['en', 'hi', 'bn', 'mr', 'as', 'ta', 'te', 'or', 'ml', 'pa', 'gu', 'kn']
+INDIC = [
+         # 'en', 
+         'hi', 
+         'bn', 
+         'mr', 
+         'as', 
+         'ta', 
+         'te', 
+         'or', 
+         'ml', 
+         'pa', 
+         'gu', 
+         'kn'
+        ]
 
 hyperparameters = {
     "learning_rate": 1e-3,
