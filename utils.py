@@ -280,8 +280,8 @@ def get_tokenizer(model_checkpoint, lang):
     tokenizer.pad_id = tokenizer._convert_token_to_id_with_added_voc("<pad>")
 
     tokenizer.add_tokens(['[', ']', 'SL:', "IN:"] +
-                         [f'<2{lang}>' for lang in INDIC])
-
+                         [f'<2{lang}>' for lang in INDIC]) if "indicbart" in model_checkpoint.lower() else []
+    
     tokenizer.model_max_length = 128
         # Define label pad token id
     label_pad_token_id = -100
