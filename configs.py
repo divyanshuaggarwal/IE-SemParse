@@ -3,8 +3,8 @@
 import argparse
 
 seq2seq_models = [
-    'ai4bharat/IndicBART',
-    'google/mt5-base',
+    "ai4bharat/IndicBART",
+    "google/mt5-base",
     "facebook/mbart-large-50",
 ]
 
@@ -18,26 +18,22 @@ encoder_models = [
     #   "google/muril-base-cased"
 ]
 
-dataset_names = [
-                    "itop", 
-                    "indic-TOP", 
-                    "indic-atis"
-]
+dataset_names = ["itop", "indic-TOP", "indic-atis"]
 
 INDIC = [
-         # 'en', 
-         'hi', 
-         'bn', 
-         'mr', 
-         'as', 
-         'ta', 
-         'te', 
-         'or', 
-         'ml', 
-         'pa', 
-         'gu', 
-         'kn'
-        ]
+    # 'en',
+    "hi",
+    "bn",
+    "mr",
+    "as",
+    "ta",
+    "te",
+    "or",
+    "ml",
+    "pa",
+    "gu",
+    "kn",
+]
 
 hyperparameters = {
     "learning_rate": 1e-3,
@@ -52,54 +48,53 @@ hyperparameters = {
     "output_dir": "trained_model/",
     "gradient_accumulation_steps": 4,
     "num_warmup_steps": 0,
-    "weight_decay": 0.0
+    "weight_decay": 0.0,
 }
 
 
 batch_sizes_gpu = {
-    'ai4bharat/IndicBART': 144,
-    "ai4bharat/IndicBART-XXEN": 144,
-    'google/mt5-base': 36,
+    "ai4bharat/IndicBART": 136,
+    "ai4bharat/IndicBART-XXEN": 136,
+    "google/mt5-base": 36,
     "facebook/mbart-large-50": 36,
     "facebook/mbart-large-50-many-to-one-mmt": 36,
-    'xlm-roberta-base': 32,
-    "google/muril-base-cased": 36
+    "xlm-roberta-base": 32,
+    "google/muril-base-cased": 36,
 }
 
 model_lr = {
-    'ai4bharat/IndicBART': 1e-3,
+    "ai4bharat/IndicBART": 1e-3,
     "ai4bharat/IndicBART-XXEN": 1e-3,
-    'google/mt5-base': 1e-3,
+    "google/mt5-base": 1e-3,
     "facebook/mbart-large-50": 1e-4,
     "facebook/mbart-large-50-many-to-one-mmt": 1e-4,
-    'xlm-roberta-base': 3e-5,
-    "google/muril-base-cased": 3e-5
-
+    "xlm-roberta-base": 3e-5,
+    "google/muril-base-cased": 3e-5,
 }
 
 model_epochs_gpu = {
-    'ai4bharat/IndicBART': 20,
+    "ai4bharat/IndicBART": 20,
     "ai4bharat/IndicBART-XXEN": 20,
-    'google/mt5-base': 10,
+    "google/mt5-base": 10,
     "facebook/mbart-large-50": 8,
     "facebook/mbart-large-50-many-to-one-mmt": 8,
-    'xlm-roberta-base': 5,
-    "google/muril-base-cased": 5
+    "xlm-roberta-base": 5,
+    "google/muril-base-cased": 5,
 }
 
 model_patience = {
-    'ai4bharat/IndicBART': 2,
+    "ai4bharat/IndicBART": 2,
     "ai4bharat/IndicBART-XXEN": 2,
-    'google/mt5-base': 1,
+    "google/mt5-base": 1,
     "facebook/mbart-large-50": 1,
     "facebook/mbart-large-50-many-to-one-mmt": 1,
-    'xlm-roberta-base': 1,
-    "google/muril-base-cased": 1
+    "xlm-roberta-base": 1,
+    "google/muril-base-cased": 1,
 }
 
+
 def get_args():
-    parser = argparse.ArgumentParser(
-        description="Simple example of training script.")
+    parser = argparse.ArgumentParser(description="Simple example of training script.")
     parser.add_argument(
         "--mixed_precision",
         type=str,
@@ -109,8 +104,9 @@ def get_args():
         "between fp16 and bf16 (bfloat16). Bf16 requires PyTorch >= 1.10."
         "and an Nvidia Ampere GPU.",
     )
-    parser.add_argument("--cpu", action="store_true",
-                        help="If passed, will train on the CPU.")
+    parser.add_argument(
+        "--cpu", action="store_true", help="If passed, will train on the CPU."
+    )
     parser.add_argument(
         "--checkpointing_steps",
         type=str,

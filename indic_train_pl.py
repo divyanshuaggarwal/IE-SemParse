@@ -1,4 +1,3 @@
-
 import torch
 import gc
 import os
@@ -10,16 +9,16 @@ from utils_pl import *
 
 
 batch_sizes_gpu = {
-                  'ai4bharat/IndicBART': 128,
-                  'google/mt5-base': 64, 
-                  "facebook/mbart-large-50": 32,
-                  'xlm-roberta-base': 32,
-                  "google/muril-base-cased": 32
+    "ai4bharat/IndicBART": 128,
+    "google/mt5-base": 64,
+    "facebook/mbart-large-50": 32,
+    "xlm-roberta-base": 32,
+    "google/muril-base-cased": 32,
 }
 
 seq2seq_models = [
-    'ai4bharat/IndicBART',
-    'google/mt5-base',
+    "ai4bharat/IndicBART",
+    "google/mt5-base",
     "facebook/mbart-large-50",
 ]
 
@@ -30,7 +29,7 @@ encoder_models = [
 
 dataset_names = ["itop", "indic-TOP", "indic-atis"]
 
-INDIC = ['hi', 'bn', 'mr', 'as', 'ta', 'te', 'or', 'ml', 'pa', 'gu', 'kn']
+INDIC = ["hi", "bn", "mr", "as", "ta", "te", "or", "ml", "pa", "gu", "kn"]
 
 seed_everything(42)
 
@@ -47,8 +46,11 @@ for dataset_name in dataset_names:
 
     for model_checkpoint in list(seq2seq_models + encoder_models):
 
-        model_name = model_checkpoint.split(
-            "/")[-1] if '/' in model_checkpoint else model_checkpoint
+        model_name = (
+            model_checkpoint.split("/")[-1]
+            if "/" in model_checkpoint
+            else model_checkpoint
+        )
 
         print(f"model:{model_name}")
 
@@ -58,15 +60,18 @@ for dataset_name in dataset_names:
         for lang in INDIC:
             print(f"language:{lang}")
 
-            if f"{lang}.json" in os.listdir(f"{base_path}/{technique}/{dataset_name}/{model_name}/"):
+            if f"{lang}.json" in os.listdir(
+                f"{base_path}/{technique}/{dataset_name}/{model_name}/"
+            ):
                 print("Skipping.......")
                 continue
 
             tokenizer = get_tokenizer(model_checkpoint, lang)
 
             if model_checkpoint in encoder_models:
-                model = get_model(model_checkpoint, tokenizer,
-                                  lang, encoder_decoder=True)
+                model = get_model(
+                    model_checkpoint, tokenizer, lang, encoder_decoder=True
+                )
 
             else:
                 model = get_model(model_checkpoint, tokenizer, lang)
@@ -78,8 +83,7 @@ for dataset_name in dataset_names:
                 test_lang=lang,
                 tokenizer=tokenizer,
                 model=model,
-                batch_size = batch_sizes_gpu[model_checkpoint]
-
+                batch_size=batch_sizes_gpu[model_checkpoint],
             )
 
             pl_model = Parser(
@@ -100,7 +104,6 @@ for dataset_name in dataset_names:
             torch.cuda.empty_cache()
 
             trainer.fit(pl_model, dm)
-            
 
             trainer.test(pl_model, dm)
             remove_model()

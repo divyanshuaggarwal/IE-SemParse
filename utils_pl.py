@@ -19,7 +19,7 @@ Original file is located at
 # !google-drive-ocamlfuse
 
 # # Commented out IPython magic to ensure Python compatibility.
-# !sudo apt-get install -qq w3m # to act as web browser 
+# !sudo apt-get install -qq w3m # to act as web browser
 # !xdg-settings set default-web-browser w3m.desktop # to set default browser
 # # %cd /content
 # !mkdir drive
@@ -46,7 +46,7 @@ import torch
 
 
 if torch.cuda.is_available():
-    os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+    os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
 # os.environ['PL_FAULT_TOLERANT_TRAINING'] = "1"
 
@@ -61,7 +61,11 @@ from pytorch_lightning import Trainer, seed_everything
 
 from pytorch_lightning.tuner.tuning import Tuner
 
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint, EarlyStopping
+from pytorch_lightning.callbacks import (
+    LearningRateMonitor,
+    ModelCheckpoint,
+    EarlyStopping,
+)
 import transformers
 import pandas as pd
 
@@ -75,22 +79,24 @@ from torch.nn import functional as F
 from torch.utils.data import DataLoader
 
 from transformers import (
-                            AutoModelForSeq2SeqLM,
-                            EncoderDecoderModel,
-                            AutoTokenizer,
-                            DataCollatorForSeq2Seq,
-                            get_scheduler,
-                        )
+    AutoModelForSeq2SeqLM,
+    EncoderDecoderModel,
+    AutoTokenizer,
+    DataCollatorForSeq2Seq,
+    get_scheduler,
+)
 
 # from accelerate import Accelerator, notebook_launcher
 
 import numpy as np
+
 # from sklearn.model_selection import train_test_split
 import Levenshtein as lev
 
 # import sklearn.preprocessing
 # from argparse import ArgumentParser
 import math
+
 # import json
 import re
 import itertools
@@ -107,7 +113,7 @@ metric
 """# Define the Translation Data Module"""
 
 BATCH_SIZE = 8
-INDIC = ['hi','bn','mr','as','ta','te','or','ml','pa','gu','kn']
+INDIC = ["hi", "bn", "mr", "as", "ta", "te", "or", "ml", "pa", "gu", "kn"]
 
 mbart_dict = {
     "hi": "hi_IN",
@@ -120,10 +126,11 @@ mbart_dict = {
     "ml": "ml_IN",
     "pa": "hi_IN",
     "gu": "gu_IN",
-    "kn": "te_IN"
+    "kn": "te_IN",
 }
 
-def get_tokenizer(model_checkpoint, lang, encoder_decoder = False):
+
+def get_tokenizer(model_checkpoint, lang, encoder_decoder=False):
     tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, cache_dir="models/")
 
     if "indic" in tokenizer.name_or_path.lower():
@@ -135,37 +142,40 @@ def get_tokenizer(model_checkpoint, lang, encoder_decoder = False):
         tokenizer.eos_id = tokenizer._convert_token_to_id_with_added_voc("</s>")
         tokenizer.pad_id = tokenizer._convert_token_to_id_with_added_voc("<pad>")
 
+        tokenizer.add_tokens(["<2en>"] + [f"<2{lang}>" for lang in INDIC])
 
-        tokenizer.add_tokens(['<2en>'] + [f'<2{lang}>' for lang in INDIC])
-    
     if encoder_decoder:
         tokenizer.bos_token = tokenizer.cls_token
         tokenizer.eos_token = tokenizer.sep_token
-        
-    tokenizer.add_tokens(['[',']','SL:',"IN:"])
 
+    tokenizer.add_tokens(["[", "]", "SL:", "IN:"])
 
-    tokenizer.model_max_length = 64      
+    tokenizer.model_max_length = 64
 
     if "mbart" in model_checkpoint:
         tokenizer.src_lang = mbart_dict[lang]
         tokenizer.tgt_lang = "en_XX"
-    
+
     return tokenizer
 
+
 def get_model(model_checkpoint, tokenizer, lang, encoder_decoder=False):
-    
+
     if encoder_decoder:
-        model = EncoderDecoderModel.from_encoder_decoder_pretrained(model_checkpoint, model_checkpoint, tie_encoder_decoder=True)
+        model = EncoderDecoderModel.from_encoder_decoder_pretrained(
+            model_checkpoint, model_checkpoint, tie_encoder_decoder=True
+        )
 
     else:
-        model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint, cache_dir="models/")
+        model = AutoModelForSeq2SeqLM.from_pretrained(
+            model_checkpoint, cache_dir="models/"
+        )
 
     if encoder_decoder:
-        model.config.decoder_start_token_id = tokenizer.bos_token_id                                             
+        model.config.decoder_start_token_id = tokenizer.bos_token_id
         model.config.eos_token_id = tokenizer.eos_token_id
         model.config.pad_token_id = tokenizer.pad_token_id
-                                
+
         model.config.max_length = 64
         model.config.early_stopping = True
         model.config.no_repeat_ngram_size = 1
@@ -178,31 +188,34 @@ def get_model(model_checkpoint, tokenizer, lang, encoder_decoder=False):
         model.decoder.resize_token_embeddings(len(tokenizer))
 
     else:
-        model.resize_token_embeddings(len(tokenizer)) 
+        model.resize_token_embeddings(len(tokenizer))
 
-        
     if "mbart" in model_checkpoint:
-        model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[lang]]
+        model.config.decoder_start_token_id = tokenizer.lang_code_to_id[
+            mbart_dict[lang]
+        ]
 
     else:
-        model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(lang) 
+        model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(lang)
 
     return model
 
-class SemanticParseDataModule(pl.LightningDataModule):
-    def __init__(self,
-                 model_name,
-                 dataset, 
-                 tokenizer,
-                 model,
-                 train_lang,
-                 test_lang,
-                 backtranslated = False,
-                 max_len = 64, 
-                 batch_size: int = BATCH_SIZE, 
-                 num_workers: int = 4):
-        super().__init__()
 
+class SemanticParseDataModule(pl.LightningDataModule):
+    def __init__(
+        self,
+        model_name,
+        dataset,
+        tokenizer,
+        model,
+        train_lang,
+        test_lang,
+        backtranslated=False,
+        max_len=64,
+        batch_size: int = BATCH_SIZE,
+        num_workers: int = 4,
+    ):
+        super().__init__()
 
         self.model_name = model_name
 
@@ -210,34 +223,38 @@ class SemanticParseDataModule(pl.LightningDataModule):
         self.tokenizer = tokenizer
 
         self.backtranslated = backtranslated
-        
-        self.batch_size = batch_size if model_name in batch_sizes else batch_sizes[model_name]
+
+        self.batch_size = (
+            batch_size if model_name in batch_sizes else batch_sizes[model_name]
+        )
 
         self.max_len = max_len
         self.dataset = dataset
 
         self.data_collator = data_collator = DataCollatorForSeq2Seq(
-                                        tokenizer=self.tokenizer, 
-                                        model=self.model, 
-                                        label_pad_token_id=-100,
-                                        pad_to_multiple_of=8
-                                    )
-        
+            tokenizer=self.tokenizer,
+            model=self.model,
+            label_pad_token_id=-100,
+            pad_to_multiple_of=8,
+        )
+
         self.num_workers = num_workers
 
         self.train_lang = train_lang
         self.test_lang = test_lang
-        
+
     def pre_process_logical_form(self, sent):
-        x = sent.replace('[','[ ')
-        x = x.replace(']',' ]')
-        x = x.replace('SL:',' SLOT: ')
-        x = x.replace('IN:',' INTENT: ')
-        x = re.sub(r'\s+', ' ', x)
+        x = sent.replace("[", "[ ")
+        x = x.replace("]", " ]")
+        x = x.replace("SL:", " SLOT: ")
+        x = x.replace("IN:", " INTENT: ")
+        x = re.sub(r"\s+", " ", x)
         return x
 
     def prepare_data(self):
-        AutoTokenizer.from_pretrained(self.model_name, keep_accent=True, cache_dir="models/")
+        AutoTokenizer.from_pretrained(
+            self.model_name, keep_accent=True, cache_dir="models/"
+        )
 
     def open_data(self):
 
@@ -247,129 +264,147 @@ class SemanticParseDataModule(pl.LightningDataModule):
         tokenizer = self.tokenizer
         backtranslated = self.backtranslated
 
-
         if train_lang != "en":
-            with open(f'Indic-SemParse/{dataset}/{train_lang}.json',"r") as f:
+            with open(f"Indic-SemParse/{dataset}/{train_lang}.json", "r") as f:
                 train_data = json.load(f)
 
         else:
-            with open(f'Indic-SemParse/{dataset}/hi.json',"r") as f:
+            with open(f"Indic-SemParse/{dataset}/hi.json", "r") as f:
                 train_data = json.load(f)
 
-        
         if test_lang != "en":
-            with open(f'Indic-SemParse/{dataset}/{test_lang}.json',"r") as f:
+            with open(f"Indic-SemParse/{dataset}/{test_lang}.json", "r") as f:
                 test_data = json.load(f)
 
         else:
-            with open(f'Indic-SemParse/{dataset}/hi.json',"r") as f:
+            with open(f"Indic-SemParse/{dataset}/hi.json", "r") as f:
                 test_data = json.load(f)
 
-        train = train_data['train']
+        train = train_data["train"]
 
-        val = test_data['validation']
-        
-        test = test_data['test']
-        
-        
-        if dataset == 'itop':
+        val = test_data["validation"]
+
+        test = test_data["test"]
+
+        if dataset == "itop":
             for idx, example in enumerate(train):
                 if train_lang != "en":
-                    train[idx]['src'] = example["postprocessed_translated_question"]
+                    train[idx]["src"] = example["postprocessed_translated_question"]
                 else:
-                    train[idx]['src'] = example["question"]
-                train[idx]['trg'] = self.pre_process_logical_form(example["logical_form"])
-            
+                    train[idx]["src"] = example["question"]
+                train[idx]["trg"] = self.pre_process_logical_form(
+                    example["logical_form"]
+                )
+
             for idx, example in enumerate(val):
                 if test_lang != "en":
                     if backtranslated:
-                        val[idx]['src'] = example["backtranslated_post_processed_questions"]
+                        val[idx]["src"] = example[
+                            "backtranslated_post_processed_questions"
+                        ]
                     else:
-                        val[idx]['src'] = example["postprocessed_translated_question"]
+                        val[idx]["src"] = example["postprocessed_translated_question"]
                 else:
-                    val[idx]['src'] = example["question"]
-                val[idx]['trg'] = self.pre_process_logical_form(example["logical_form"])
+                    val[idx]["src"] = example["question"]
+                val[idx]["trg"] = self.pre_process_logical_form(example["logical_form"])
 
             for idx, example in enumerate(test):
                 if test_lang != "en":
                     if backtranslated:
-                        test[idx]['src'] = example["backtranslated_post_processed_questions"]
+                        test[idx]["src"] = example[
+                            "backtranslated_post_processed_questions"
+                        ]
                     else:
-                        test[idx]['src'] = example["postprocessed_translated_question"]
+                        test[idx]["src"] = example["postprocessed_translated_question"]
                 else:
-                    test[idx]['src'] = example["question"]
-                test[idx]['trg'] = self.pre_process_logical_form(example["logical_form"])
+                    test[idx]["src"] = example["question"]
+                test[idx]["trg"] = self.pre_process_logical_form(
+                    example["logical_form"]
+                )
 
         elif dataset == "indic-TOP":
             for idx, example in enumerate(train):
                 if train_lang != "en":
-                    train[idx]['src'] = example["postprocessed_translated_question"]
+                    train[idx]["src"] = example["postprocessed_translated_question"]
                 else:
-                    train[idx]['src'] = example["question"]
-                train[idx]['trg'] = self.pre_process_logical_form(example["decoupled logical form"])
-            
+                    train[idx]["src"] = example["question"]
+                train[idx]["trg"] = self.pre_process_logical_form(
+                    example["decoupled logical form"]
+                )
+
             for idx, example in enumerate(val):
                 if test_lang != "en":
                     if backtranslated:
-                        val[idx]['src'] = example["backtranslated_post_processed_questions"]
+                        val[idx]["src"] = example[
+                            "backtranslated_post_processed_questions"
+                        ]
                     else:
-                        val[idx]['src'] = example["postprocessed_translated_question"]
+                        val[idx]["src"] = example["postprocessed_translated_question"]
                 else:
-                    val[idx]['src'] = example["question"]
-                val[idx]['trg'] = self.pre_process_logical_form(example["decoupled logical form"])
+                    val[idx]["src"] = example["question"]
+                val[idx]["trg"] = self.pre_process_logical_form(
+                    example["decoupled logical form"]
+                )
 
             for idx, example in enumerate(test):
                 if test_lang != "en":
                     if backtranslated:
-                        test[idx]['src'] = example["backtranslated_post_processed_questions"]
+                        test[idx]["src"] = example[
+                            "backtranslated_post_processed_questions"
+                        ]
                     else:
-                        test[idx]['src'] = example["postprocessed_translated_question"]
+                        test[idx]["src"] = example["postprocessed_translated_question"]
                 else:
-                    test[idx]['src'] = example["question"]
-                test[idx]['trg'] = self.pre_process_logical_form(example["decoupled logical form"])
-
+                    test[idx]["src"] = example["question"]
+                test[idx]["trg"] = self.pre_process_logical_form(
+                    example["decoupled logical form"]
+                )
 
         elif dataset == "indic-atis":
             for idx, example in enumerate(train):
                 if train_lang != "en":
-                    train[idx]['src'] = example["translated_text"]
+                    train[idx]["src"] = example["translated_text"]
                 else:
-                    train[idx]['src'] = example["text"]
-                train[idx]['trg'] = self.pre_process_logical_form(example["logical form"])
-            
+                    train[idx]["src"] = example["text"]
+                train[idx]["trg"] = self.pre_process_logical_form(
+                    example["logical form"]
+                )
+
             for idx, example in enumerate(val):
                 if test_lang != "en":
                     if backtranslated:
-                        val[idx]['src'] = example["backtranslated_text"]
+                        val[idx]["src"] = example["backtranslated_text"]
                     else:
-                        val[idx]['src'] = example["translated_text"]
+                        val[idx]["src"] = example["translated_text"]
                 else:
-                    val[idx]['src'] = example["text"]
-                val[idx]['trg'] = self.pre_process_logical_form(example["logical form"])
+                    val[idx]["src"] = example["text"]
+                val[idx]["trg"] = self.pre_process_logical_form(example["logical form"])
 
             for idx, example in enumerate(test):
                 if test_lang != "en":
                     if backtranslated:
-                        test[idx]['src'] = example["backtranslated_text"]
+                        test[idx]["src"] = example["backtranslated_text"]
                     else:
-                        test[idx]['src'] = example["translated_text"]
+                        test[idx]["src"] = example["translated_text"]
                 else:
-                    test[idx]['src'] = example["text"]
-                test[idx]['trg'] = self.pre_process_logical_form(example["logical form"])
+                    test[idx]["src"] = example["text"]
+                test[idx]["trg"] = self.pre_process_logical_form(
+                    example["logical form"]
+                )
 
         train_data = Dataset.from_pandas(pd.DataFrame(data=train))
 
         val_data = Dataset.from_pandas(pd.DataFrame(data=val))
-        
+
         test_data = Dataset.from_pandas(pd.DataFrame(data=test))
 
         dataset = DatasetDict()
 
-        dataset['train'] = train_data
+        dataset["train"] = train_data
 
-        dataset['val'] = val_data
-        
-        dataset['test'] = test_data
+        dataset["val"] = val_data
+
+        dataset["test"] = test_data
 
         return dataset
 
@@ -385,22 +420,27 @@ class SemanticParseDataModule(pl.LightningDataModule):
             prefix = f"Parse from {lang} to english logical from:"
         else:
             prefix = ""
-        
+
         if "indic" in tokenizer.name_or_path.lower():
-            inputs = [f"{example} <2{lang}>" for example in examples['src']]
-            targets = [example for example in examples['trg']]
+            inputs = [f"{example} <2{lang}>" for example in examples["src"]]
+            targets = [example for example in examples["trg"]]
         else:
-            inputs = [prefix + example for example in examples['src']]
-            targets = [example for example in examples['trg']]
-        model_inputs = tokenizer(inputs, max_length=max_source_length, padding=padding,truncation=True)
+            inputs = [prefix + example for example in examples["src"]]
+            targets = [example for example in examples["trg"]]
+        model_inputs = tokenizer(
+            inputs, max_length=max_source_length, padding=padding, truncation=True
+        )
 
         with tokenizer.as_target_tokenizer():
-            labels = tokenizer(targets, max_length=max_target_length, padding=padding, truncation=True)
+            labels = tokenizer(
+                targets, max_length=max_target_length, padding=padding, truncation=True
+            )
 
         if padding == "max_length":
             labels["input_ids"] = [
-                        [(l if l != tokenizer.pad_token_id else -100) for l in label] for label in labels["input_ids"]
-                ]
+                [(l if l != tokenizer.pad_token_id else -100) for l in label]
+                for label in labels["input_ids"]
+            ]
 
         model_inputs["labels"] = labels["input_ids"]
         return model_inputs
@@ -409,16 +449,16 @@ class SemanticParseDataModule(pl.LightningDataModule):
         # Loading the dataset
 
         self.data = self.open_data()
-        self.train_data = self.data['train']
-        self.val_data = self.data['val']
-        self.test_data = self.data['test']
+        self.train_data = self.data["train"]
+        self.val_data = self.data["val"]
+        self.test_data = self.data["test"]
 
         self.stage = stage
-        
+
         if stage == "fit" or stage == None:
-        
+
             column_names = self.train_data.column_names
-            
+
             self.train_dataset = self.train_data.map(
                 self.preprocess_function,
                 batched=True,
@@ -427,8 +467,7 @@ class SemanticParseDataModule(pl.LightningDataModule):
                 # num_proc = self.num_workers
             )
             column_names = self.val_data.column_names
-            
-                
+
             self.val_dataset = self.test_data.map(
                 self.preprocess_function,
                 batched=True,
@@ -454,41 +493,45 @@ class SemanticParseDataModule(pl.LightningDataModule):
             if "token_type_ids" in self.test_dataset.column_names:
                 self.test_dataset = self.test_dataset.remove_columns("token_type_ids")
 
-
     def train_dataloader(self):
         sampler = None
-        
-        
-        return DataLoader(self.train_dataset, 
-                          sampler=sampler, 
-                          shuffle=True, 
-                          batch_size=self.batch_size, 
-                          num_workers = self.num_workers,
-                          collate_fn=self.data_collator
-                          )
+
+        return DataLoader(
+            self.train_dataset,
+            sampler=sampler,
+            shuffle=True,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            collate_fn=self.data_collator,
+        )
 
     def val_dataloader(self):
         sampler = None
-        
-        
-        return DataLoader(self.val_dataset, 
-                          sampler=sampler,
-                          batch_size=self.batch_size,
-                          num_workers = self.num_workers, 
-                          collate_fn=self.data_collator)
+
+        return DataLoader(
+            self.val_dataset,
+            sampler=sampler,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            collate_fn=self.data_collator,
+        )
 
     def test_dataloader(self):
         sampler = None
-        
-        return DataLoader(self.test_dataset, 
-                          sampler=sampler,
-                          batch_size = self.batch_size,
-                          num_workers = self.num_workers,
-                          collate_fn=self.data_collator)
+
+        return DataLoader(
+            self.test_dataset,
+            sampler=sampler,
+            batch_size=self.batch_size,
+            num_workers=self.num_workers,
+            collate_fn=self.data_collator,
+        )
+
 
 """# Define the Translation Pytorch Lightning Class"""
 
 import string
+
 
 def postprocess_text(preds, labels):
     preds = [post_process_logical_form(pred.strip()) for pred in preds]
@@ -496,25 +539,28 @@ def postprocess_text(preds, labels):
 
     return preds, labels
 
+
 def post_process_logical_form(sent):
-    x = sent.replace('[','[ ')
-    x = x.replace(']',' ]')
-    x = x.replace('SLOT:',' SL: ')
-    x = x.replace('INTENT:',' IN: ')
-    x = re.sub(r'\s+', ' ', x)
+    x = sent.replace("[", "[ ")
+    x = x.replace("]", " ]")
+    x = x.replace("SLOT:", " SL: ")
+    x = x.replace("INTENT:", " IN: ")
+    x = re.sub(r"\s+", " ", x)
     return x
+
 
 def normalize_answer(s):
     """Lower text and remove punctuation, articles and extra whitespace."""
+
     def remove_articles(text):
-        return re.sub(r'\b(a|an|the)\b', ' ', text)
+        return re.sub(r"\b(a|an|the)\b", " ", text)
 
     def white_space_fix(text):
-        return ' '.join(text.split())
+        return " ".join(text.split())
 
     def remove_punc(text):
         exclude = set(string.punctuation)
-        return ''.join(ch for ch in text if ch not in exclude)
+        return "".join(ch for ch in text if ch not in exclude)
 
     def lower(text):
         return text.lower()
@@ -550,31 +596,46 @@ def evaluate(gold_answers, predictions, tokenizer):
         dist = lev.ratio(prediction.lower(), ground_truth.lower())
 
         exact_matches.append(exact_match_metric)
-        scores.append(f1)   
+        scores.append(f1)
         lev_dist.append(dist)
 
-    return {'exact_match': exact_matches, 'f1': scores, "levenshtein_distance": lev_dist}
+    return {
+        "exact_match": exact_matches,
+        "f1": scores,
+        "levenshtein_distance": lev_dist,
+    }
+
 
 def exact_match(decoded_preds, decoded_labels, tokenizer):
-    
-    result = metric.compute(predictions=decoded_preds, references=decoded_labels, regexes_to_ignore=[r"\s+"], ignore_case=True, ignore_punctuation=True)
+
+    result = metric.compute(
+        predictions=decoded_preds,
+        references=decoded_labels,
+        regexes_to_ignore=[r"\s+"],
+        ignore_case=True,
+        ignore_punctuation=True,
+    )
     result = {"exact_match": result["exact_match"]}
 
-    prediction_lens = [np.count_nonzero(pred != tokenizer.pad_token_id) for pred in decoded_preds]
-    
+    prediction_lens = [
+        np.count_nonzero(pred != tokenizer.pad_token_id) for pred in decoded_preds
+    ]
+
     result = {k: round(v, 4) for k, v in result.items()}
     return round(result["exact_match"], 1)
+
 
 base_path = "results"
 
 
-def make_pth(strategy, dataset,model, lang = None):
+def make_pth(strategy, dataset, model, lang=None):
     if lang:
         path = f"{base_path}/{strategy}/{dataset}/{model}/{lang}"
     else:
-        path = f"{base_path}/{strategy}/{dataset}/{model}" 
+        path = f"{base_path}/{strategy}/{dataset}/{model}"
 
     return path
+
 
 def postprocess_text(preds, labels):
     preds = [pred.strip() for pred in preds]
@@ -582,66 +643,80 @@ def postprocess_text(preds, labels):
 
     return preds, labels
 
+
 def post_process_logical_form(sent):
-    x = sent.replace('[','[ ')
-    x = x.replace(']',' ]')
-    x = x.replace('SLOT:',' SL: ')
-    x = x.replace('INTENT:',' IN: ')
-    x = re.sub(r'\s+', ' ', x)
+    x = sent.replace("[", "[ ")
+    x = x.replace("]", " ]")
+    x = x.replace("SLOT:", " SL: ")
+    x = x.replace("INTENT:", " IN: ")
+    x = re.sub(r"\s+", " ", x)
     return x
 
+
 def compute_metrics(tokenizer, decoded_preds, decoded_labels):
-    
-    result = metric.compute(predictions=decoded_preds, references=decoded_labels, regexes_to_ignore=[r"\s+"], ignore_case=True, ignore_punctuation=True)
+
+    result = metric.compute(
+        predictions=decoded_preds,
+        references=decoded_labels,
+        regexes_to_ignore=[r"\s+"],
+        ignore_case=True,
+        ignore_punctuation=True,
+    )
     result = {"exact_match": result["exact_match"]}
 
-    prediction_lens = [np.count_nonzero(pred != tokenizer.pad_token_id) for pred in decoded_preds]
+    prediction_lens = [
+        np.count_nonzero(pred != tokenizer.pad_token_id) for pred in decoded_preds
+    ]
     result["gen_len"] = np.mean(prediction_lens)
     result = {k: round(v, 4) for k, v in result.items()}
     return result
 
-# base_path = "/content/drive/MyDrive/iTOP/results"
-def make_dir(strategy, dataset,model, lang = None):
 
-    
+# base_path = "/content/drive/MyDrive/iTOP/results"
+def make_dir(strategy, dataset, model, lang=None):
+
     if lang:
         path = f"{base_path}/{strategy}/{dataset}/{model}/{lang}"
     else:
-        path = f"{base_path}/{strategy}/{dataset}/{model}" 
+        path = f"{base_path}/{strategy}/{dataset}/{model}"
 
     try:
         os.makedirs(path)
     except:
         pass
 
-    return path 
+    return path
+
 
 def flatten(xss):
-  return [x for xs in xss for x in xs]
+    return [x for xs in xss for x in xs]
+
 
 class Parser(pl.LightningModule):
-    def __init__(self,
-                 model_name,
-                 dataset,
-                 lang,
-                 technique,
-                 tokenizer,
-                 model,
-                 lr: float = 1e-4,
-                 batch_size = BATCH_SIZE,
-                 weight_decay = 0.0,
-                 gradient_accumulation_steps = 4,
-                 num_warmup_steps = 0,
-                 max_length = 64,
-                 eps = 1e-8,
-                 **kwargs):
-        
+    def __init__(
+        self,
+        model_name,
+        dataset,
+        lang,
+        technique,
+        tokenizer,
+        model,
+        lr: float = 1e-4,
+        batch_size=BATCH_SIZE,
+        weight_decay=0.0,
+        gradient_accumulation_steps=4,
+        num_warmup_steps=0,
+        max_length=64,
+        eps=1e-8,
+        **kwargs,
+    ):
+
         super().__init__()
 
         # self.save_hyperparameters()
 
-        self.ignore_pad_token_for_loss = True 
-        
+        self.ignore_pad_token_for_loss = True
+
         self.tokenizer = tokenizer
 
         self.model = model
@@ -649,27 +724,27 @@ class Parser(pl.LightningModule):
         self.model_name = model_name
 
         self.technique = technique
-        
+
         self.num_warmup_steps = num_warmup_steps
 
         self.dataset = dataset
-        
+
         self.lang = lang
         # extract AutoConfig, from which relevant parameters can be extracted.
-        
+
         self.gradient_accumulation_steps = gradient_accumulation_steps
-       
+
         self.weight_decay = weight_decay
         self.batch_size = batch_size
         self.max_length = max_length
         self.eps = eps
         self.lr = lr
         self.lr_scheduler = None
- 
+
     def forward(self, batch):
 
         outputs = self.model(**batch)
-        
+
         return outputs
 
     def training_step(self, batch, batch_nb):
@@ -677,97 +752,97 @@ class Parser(pl.LightningModule):
         outputs = self(batch)
 
         loss = outputs.loss
-        
-        self.log_dict({
-                        'train_loss':loss,
-                    
-                    }, 
-                    prog_bar=True
-                    )
 
-        return {   
-                'loss': loss, 
-                'train_loss':loss.detach(), 
-               
-                }
+        self.log_dict(
+            {
+                "train_loss": loss,
+            },
+            prog_bar=True,
+        )
+
+        return {
+            "loss": loss,
+            "train_loss": loss.detach(),
+        }
 
     def training_epoch_end(self, outputs):
         outputs = list(itertools.chain(self.all_gather(outputs)))
         avg_loss = torch.stack([x["train_loss"] for x in outputs]).mean()
-        
-        self.log_dict({
-                        'avg_train_loss':avg_loss, 
-                    }, 
-                    prog_bar=True
-                    )
+
+        self.log_dict(
+            {
+                "avg_train_loss": avg_loss,
+            },
+            prog_bar=True,
+        )
 
     def validation_step(self, batch, batch_nb):
         outputs = self(batch)
 
         loss = outputs.loss
 
-        self.log_dict({
-                        'val_loss':loss, 
-                    }, 
-                    prog_bar=True
-                    )
+        self.log_dict(
+            {
+                "val_loss": loss,
+            },
+            prog_bar=True,
+        )
 
         return {
-                'val_loss':loss, 
-                }
+            "val_loss": loss,
+        }
 
-    
     def validation_epoch_end(self, outputs):
         outputs = list(itertools.chain(self.all_gather(outputs)))
-        
-        avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
-        
-        self.log_dict({
-                        'avg_val_loss':avg_loss,
-                    }, 
-                    prog_bar=True
-                    )
 
+        avg_loss = torch.stack([x["val_loss"] for x in outputs]).mean()
+
+        self.log_dict(
+            {
+                "avg_val_loss": avg_loss,
+            },
+            prog_bar=True,
+        )
 
     def test_step(self, batch, batch_nb):
 
         with torch.no_grad():
             # accelerator.print("entered in torch no grad")
-            
+
             generated_tokens = self.model.generate(
-                                                batch["input_ids"],
-                                                attention_mask=batch["attention_mask"],
-                                                num_beams=3,
-                                                do_sample=True,
-                                                max_length=64,
-                                                use_cache=False,
-                                                # num_return_sequences=1,
-                                                early_stopping=True
-                                            )
-            
+                batch["input_ids"],
+                attention_mask=batch["attention_mask"],
+                num_beams=3,
+                do_sample=True,
+                max_length=64,
+                use_cache=False,
+                # num_return_sequences=1,
+                early_stopping=True,
+            )
 
             generated_tokens = generated_tokens.detach().cpu().numpy()
             # accelerator.print("generated 3")
             # accelerator.print("tokenizing....")
 
-            decoded_preds = self.tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
+            decoded_preds = self.tokenizer.batch_decode(
+                generated_tokens, skip_special_tokens=True
+            )
 
+            label_batch = batch["labels"].detach().cpu().numpy()
 
-            label_batch = batch['labels'].detach().cpu().numpy()
+            label_batch = np.where(
+                label_batch != -100, label_batch, self.tokenizer.pad_token_id
+            )
+            decoded_labels = self.tokenizer.batch_decode(
+                label_batch, skip_special_tokens=True
+            )
 
-            label_batch = np.where(label_batch != -100, label_batch, self.tokenizer.pad_token_id)
-            decoded_labels = self.tokenizer.batch_decode(label_batch, skip_special_tokens=True)
+            decoded_preds, decoded_labels = postprocess_text(
+                decoded_preds, decoded_labels
+            )
 
+        return {"preds": decoded_preds, "labels": decoded_labels}
 
-            decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
-
-        return {
-                "preds": decoded_preds,
-                "labels": decoded_labels
-                }
-
-       
-    
     def test_epoch_end(self, outputs):
 
         outputs = list(itertools.chain.from_iterable(self.all_gather(outputs)))
@@ -775,63 +850,53 @@ class Parser(pl.LightningModule):
         labels = list(itertools.chain.from_iterable([x["labels"] for x in outputs]))
         labels = list(itertools.chain.from_iterable(labels))
         preds = list(itertools.chain.from_iterable([x["preds"] for x in outputs]))
-        
+
         print(labels)
         print(preds)
 
-
-        model_name = model.name_or_path if model.name_or_path else model.encoder.name_or_path
-        model_name = model_name.split("/")[-1] if '/' in model_name else model_name
+        model_name = (
+            model.name_or_path if model.name_or_path else model.encoder.name_or_path
+        )
+        model_name = model_name.split("/")[-1] if "/" in model_name else model_name
 
         technique = self.technique
         dataset_name = self.dataset
         lang = self.lang
 
         raw_dataset = self.trainer.datamodule.test_data
-        
+
         if technique == "crosslingual_transfer":
             pth = make_pth(technique, dataset_name, model_name, lang)
-        
+
         else:
             pth = make_pth(technique, dataset_name, model_name)
-        
 
-        save_data = {k:raw_dataset[k] for k in raw_dataset.column_names}
-        
-        save_data['predictions'] = preds
-        save_data['labels'] = labels
+        save_data = {k: raw_dataset[k] for k in raw_dataset.column_names}
 
-        save_data['trg'], _ =  postprocess_text(save_data['trg'], [])
+        save_data["predictions"] = preds
+        save_data["labels"] = labels
 
+        save_data["trg"], _ = postprocess_text(save_data["trg"], [])
 
-        metrics = evaluate(save_data['labels'], save_data['predictions'], self.tokenizer)
+        metrics = evaluate(
+            save_data["labels"], save_data["predictions"], self.tokenizer
+        )
 
-        for k,v in metrics.items():
+        for k, v in metrics.items():
             print(k)
             print(len(v))
             save_data[k] = v
 
-
         # print(save_data)
         save_dict = pd.DataFrame(save_data).to_dict("records")
 
+        with open(f"{pth}/{lang}.json", "w", encoding="utf8") as f:
+            json.dump({"outputs": save_dict}, f, indent=6, ensure_ascii=False)
 
-        with open(f"{pth}/{lang}.json","w",encoding='utf8') as f:
-            json.dump({
-                        "outputs": save_dict
-                    }, 
-                    f, indent=6, ensure_ascii=False)
+        self.log_dict(
+            {"metrics": json.loads(json.dumps(metrics, indent=6))}, prog_bar=True
+        )
 
-        self.log_dict({
-                    'metrics': json.loads(json.dumps(metrics, indent=6))
-                    }, 
-                    prog_bar=True
-                )
-        
-
-            
-       
-        
     # ---------------------
     # TRAINING SETUP
     # ---------------------
@@ -843,36 +908,42 @@ class Parser(pl.LightningModule):
         no_decay = ["bias", "LayerNorm.weight"]
         optimizer_grouped_parameters = [
             {
-                "params": [p for n, p in self.model.named_parameters() if not any(nd in n for nd in no_decay)],
+                "params": [
+                    p
+                    for n, p in self.model.named_parameters()
+                    if not any(nd in n for nd in no_decay)
+                ],
                 "weight_decay": self.weight_decay,
             },
             {
-                "params": [p for n, p in self.model.named_parameters() if any(nd in n for nd in no_decay)],
+                "params": [
+                    p
+                    for n, p in self.model.named_parameters()
+                    if any(nd in n for nd in no_decay)
+                ],
                 "weight_decay": 0.0,
             },
         ]
         optimizer = torch.optim.AdamW(
-                                      optimizer_grouped_parameters, 
-                                      lr=self.lr, 
-                                      eps = self.eps
-                                      )
+            optimizer_grouped_parameters, lr=self.lr, eps=self.eps
+        )
 
         self.lr_scheduler = get_scheduler(
-                                            name="linear",
-                                            optimizer=optimizer,
-                                            num_warmup_steps=self.num_warmup_steps,
-                                            num_training_steps= self.trainer.estimated_stepping_batches,
-                                )
+            name="linear",
+            optimizer=optimizer,
+            num_warmup_steps=self.num_warmup_steps,
+            num_training_steps=self.trainer.estimated_stepping_batches,
+        )
 
-        lr_scheduler = {'scheduler': self.lr_scheduler,
-                        'name': 'learning_rate',
-                        'interval':'step',
-                        'frequency': 1}
+        lr_scheduler = {
+            "scheduler": self.lr_scheduler,
+            "name": "learning_rate",
+            "interval": "step",
+            "frequency": 1,
+        }
 
-        return {
-             'optimizer': optimizer,
-             'lr_scheduler': lr_scheduler
-             }
+        return {"optimizer": optimizer, "lr_scheduler": lr_scheduler}
+
 
 # import json
 # import pandas as pd
@@ -906,7 +977,7 @@ class Parser(pl.LightningModule):
 #             max_length=128,
 #             use_cache=False,
 #             num_return_sequences=1,
-#             num_beams=4, 
+#             num_beams=4,
 #             early_stopping=True
 #             )
 
@@ -915,8 +986,8 @@ class Parser(pl.LightningModule):
 #             )
 
 #             generated_tokens = accelerator.gather(generated_tokens).cpu().numpy()
-            
-            
+
+
 #         decoded_preds = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
 
 #         label_batch = batch['labels']
@@ -936,10 +1007,10 @@ class Parser(pl.LightningModule):
 
 #     if strategy == "crosslingual_transfer":
 #         pth = make_dir(strategy, dataset_name, model_name, lang)
-    
+
 #     else:
 #         pth = make_dir(strategy, dataset_name, model_name)
-    
+
 #     src = dataset['src']
 #     trg = dataset['trg']
 
@@ -951,13 +1022,11 @@ class Parser(pl.LightningModule):
 #     }).to_dict("records")
 
 
-
 #     with open(f"{pth}/{lang}.json","w",encoding='utf8') as f:
 #         json.dump({
 #                     "outputs": save_dict
-#                    }, 
+#                    },
 #                   f, indent=6, ensure_ascii=False)
-        
 
 
 #         # # Use accelerator.print to print only on the main process.
@@ -967,21 +1036,22 @@ class Parser(pl.LightningModule):
 """# Define Training Parameters"""
 
 batch_sizes = {
-                  'ai4bharat/IndicBART': 64,
-                  'google/mt5-base': 32, 
-                  "facebook/mbart-large-50": 8,
-                  'xlm-roberta-base': 16,
-                  "google/muril-base-cased": 16
+    "ai4bharat/IndicBART": 64,
+    "google/mt5-base": 32,
+    "facebook/mbart-large-50": 8,
+    "xlm-roberta-base": 16,
+    "google/muril-base-cased": 16,
 }
 
-def get_trainer(auto_scale_batch_size = False):
+
+def get_trainer(auto_scale_batch_size=False):
     # callbacks
     early_stop_callback = EarlyStopping(
-        monitor='val_loss',
+        monitor="val_loss",
         min_delta=0.001,
         patience=2,
         verbose=True,
-        mode='min',
+        mode="min",
         strict=True,
     )
 
@@ -1000,35 +1070,35 @@ def get_trainer(auto_scale_batch_size = False):
     AVAIL_GPUS = min(1, torch.cuda.device_count())
 
     trainer = Trainer(
-                        # default_root_dir="/content/",
-                        precision="bf16",
-                        accelerator = "auto",
-                        devices = "auto",
-                        progress_bar_refresh_rate=5,
-                        enable_progress_bar = True, 
-                        val_check_interval=0.5,
-                        auto_scale_batch_size="power" if auto_scale_batch_size else None,
-                        callbacks=[
-                                    early_stop_callback,
-                                    #    checkpoint_callback,
-                                    #    lr_monitor_callback,
-                                #    prediction_writer
-                                    ],
-                        # max_epochs=1,
-                        # fast_dev_run=True,
-                        # limit_train_batches = 0.2,
-                        auto_lr_find="lr" if not auto_scale_batch_size else None,
-                        stochastic_weight_avg=True,
-                        gradient_clip_val=0.5,
-                        # strategy="ddp_sharded"
-                        accumulate_grad_batches=4 
-                    )
-    
+        # default_root_dir="/content/",
+        precision="bf16",
+        accelerator="auto",
+        devices="auto",
+        progress_bar_refresh_rate=5,
+        enable_progress_bar=True,
+        val_check_interval=0.5,
+        auto_scale_batch_size="power" if auto_scale_batch_size else None,
+        callbacks=[
+            early_stop_callback,
+            #    checkpoint_callback,
+            #    lr_monitor_callback,
+            #    prediction_writer
+        ],
+        # max_epochs=1,
+        # fast_dev_run=True,
+        # limit_train_batches = 0.2,
+        auto_lr_find="lr" if not auto_scale_batch_size else None,
+        stochastic_weight_avg=True,
+        gradient_clip_val=0.5,
+        # strategy="ddp_sharded"
+        accumulate_grad_batches=4,
+    )
+
     return trainer
 
 
 def tune(model, dm):
-    trainer = get_trainer(auto_scale_batch_size = True)
+    trainer = get_trainer(auto_scale_batch_size=True)
     tuner = Tuner(trainer)
 
     # Invoke method
@@ -1037,7 +1107,7 @@ def tune(model, dm):
     torch.cuda.empty_cache()
 
     new_batch_size = new_batch_size // 2
-    
+
     dm.batch_size = new_batch_size
 
     dm.batch_size = batch_sizes[model.model.name_or_path]
@@ -1056,6 +1126,6 @@ def tune(model, dm):
 
 
 def remove_model():
-    files = glob.glob('models/*')
+    files = glob.glob("models/*")
     for f in files:
         os.remove(f)

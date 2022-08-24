@@ -25,14 +25,14 @@ import numpy as np
 from accelerate.logging import get_logger
 from accelerate import Accelerator, notebook_launcher
 from transformers import (
-                            AutoModelForSeq2SeqLM,
-                            EncoderDecoderModel,
-                            AutoTokenizer,
-                            DataCollatorForSeq2Seq,
-                            get_scheduler,
-                            set_seed,
-                            default_data_collator
-                        )
+    AutoModelForSeq2SeqLM,
+    EncoderDecoderModel,
+    AutoTokenizer,
+    DataCollatorForSeq2Seq,
+    get_scheduler,
+    set_seed,
+    default_data_collator,
+)
 from torch.utils.data import DataLoader
 from torch.nn import functional as F
 import sentencepiece as spm
@@ -55,7 +55,7 @@ import torch
 print(torch.__version__)
 
 if torch.cuda.is_available():
-    os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+    os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
 # import tensorflow as tf
 
@@ -87,137 +87,138 @@ mbart_dict = {
     "pa": "hi_IN",
     "gu": "gu_IN",
     "kn": "te_IN",
-    "en": "en_XX"
+    "en": "en_XX",
 }
 
-INDIC = ['hi','bn','mr','as','ta','te','or','ml','pa','gu','kn']
+INDIC = ["hi", "bn", "mr", "as", "ta", "te", "or", "ml", "pa", "gu", "kn"]
 
 
 def pre_process_logical_form(sent):
-    x = sent.replace('[', '[ ')
-    x = x.replace(']', ' ]')
-    x = x.replace('SL:', ' SLOT: ')
-    x = x.replace('IN:', ' INTENT: ')
-    x = re.sub(r'\s+', ' ', x)
+    x = sent.replace("[", "[ ")
+    x = x.replace("]", " ]")
+    x = x.replace("SL:", " SLOT: ")
+    x = x.replace("IN:", " INTENT: ")
+    x = re.sub(r"\s+", " ", x)
     return x
 
 
-def create_dataset(dataset, train_lang, test_lang, backtranslated = False):
+def create_dataset(dataset, train_lang, test_lang, backtranslated=False):
 
     if train_lang != "en":
-        with open(f'Indic-SemParse/{dataset}/{train_lang}.json', "r") as f:
+        with open(f"Indic-SemParse/{dataset}/{train_lang}.json", "r") as f:
             train_data = json.load(f)
 
     else:
-        with open(f'Indic-SemParse/{dataset}/hi.json', "r") as f:
+        with open(f"Indic-SemParse/{dataset}/hi.json", "r") as f:
             train_data = json.load(f)
 
     if test_lang != "en":
-        with open(f'Indic-SemParse/{dataset}/{test_lang}.json', "r") as f:
+        with open(f"Indic-SemParse/{dataset}/{test_lang}.json", "r") as f:
             test_data = json.load(f)
 
     else:
-        with open(f'Indic-SemParse/{dataset}/hi.json', "r") as f:
+        with open(f"Indic-SemParse/{dataset}/hi.json", "r") as f:
             test_data = json.load(f)
 
-    train = train_data['train']
+    train = train_data["train"]
 
-    val = test_data['validation']
+    val = test_data["validation"]
 
-    test = test_data['test']
+    test = test_data["test"]
 
-    if dataset == 'itop':
+    if dataset == "itop":
         for idx, example in enumerate(train):
             if train_lang != "en":
-                train[idx]['src'] = example["postprocessed_translated_question"]
+                train[idx]["src"] = example["postprocessed_translated_question"]
             else:
-                train[idx]['src'] = example["question"]
-            train[idx]['trg'] = pre_process_logical_form(
-                example["logical_form"])
+                train[idx]["src"] = example["question"]
+            train[idx]["trg"] = pre_process_logical_form(example["logical_form"])
 
         for idx, example in enumerate(val):
             if test_lang != "en":
                 if backtranslated:
-                    val[idx]['src'] = example["backtranslated_post_processed_questions"]
+                    val[idx]["src"] = example["backtranslated_post_processed_questions"]
                 else:
-                    val[idx]['src'] = example["postprocessed_translated_question"]
+                    val[idx]["src"] = example["postprocessed_translated_question"]
             else:
-                val[idx]['src'] = example["question"]
-            val[idx]['trg'] = pre_process_logical_form(
-                example["logical_form"])
+                val[idx]["src"] = example["question"]
+            val[idx]["trg"] = pre_process_logical_form(example["logical_form"])
 
         for idx, example in enumerate(test):
             if test_lang != "en":
                 if backtranslated:
-                    test[idx]['src'] = example["backtranslated_post_processed_questions"]
+                    test[idx]["src"] = example[
+                        "backtranslated_post_processed_questions"
+                    ]
                 else:
-                    test[idx]['src'] = example["postprocessed_translated_question"]
+                    test[idx]["src"] = example["postprocessed_translated_question"]
             else:
-                test[idx]['src'] = example["question"]
-            test[idx]['trg'] = pre_process_logical_form(
-                example["logical_form"])
+                test[idx]["src"] = example["question"]
+            test[idx]["trg"] = pre_process_logical_form(example["logical_form"])
 
     elif dataset == "indic-TOP":
         for idx, example in enumerate(train):
             if train_lang != "en":
-                train[idx]['src'] = example["postprocessed_translated_question"]
+                train[idx]["src"] = example["postprocessed_translated_question"]
             else:
-                train[idx]['src'] = example["question"]
-            train[idx]['trg'] = pre_process_logical_form(
-                example["decoupled logical form"])
+                train[idx]["src"] = example["question"]
+            train[idx]["trg"] = pre_process_logical_form(
+                example["decoupled logical form"]
+            )
 
         for idx, example in enumerate(val):
             if test_lang != "en":
                 if backtranslated:
-                    val[idx]['src'] = example["backtranslated_post_processed_questions"]
+                    val[idx]["src"] = example["backtranslated_post_processed_questions"]
                 else:
-                    val[idx]['src'] = example["postprocessed_translated_question"]
+                    val[idx]["src"] = example["postprocessed_translated_question"]
             else:
-                val[idx]['src'] = example["question"]
-            val[idx]['trg'] = pre_process_logical_form(
-                example["decoupled logical form"])
+                val[idx]["src"] = example["question"]
+            val[idx]["trg"] = pre_process_logical_form(
+                example["decoupled logical form"]
+            )
 
         for idx, example in enumerate(test):
             if test_lang != "en":
                 if backtranslated:
-                    test[idx]['src'] = example["backtranslated_post_processed_questions"]
+                    test[idx]["src"] = example[
+                        "backtranslated_post_processed_questions"
+                    ]
                 else:
-                    test[idx]['src'] = example["postprocessed_translated_question"]
+                    test[idx]["src"] = example["postprocessed_translated_question"]
             else:
-                test[idx]['src'] = example["question"]
-            test[idx]['trg'] = pre_process_logical_form(
-                example["decoupled logical form"])
+                test[idx]["src"] = example["question"]
+            test[idx]["trg"] = pre_process_logical_form(
+                example["decoupled logical form"]
+            )
 
     elif dataset == "indic-atis":
         for idx, example in enumerate(train):
             if train_lang != "en":
-                train[idx]['src'] = example["translated text"]
+                train[idx]["src"] = example["translated text"]
             else:
-                train[idx]['src'] = example["text"]
-            train[idx]['trg'] = pre_process_logical_form(
-                example["logical form"])
+                train[idx]["src"] = example["text"]
+            train[idx]["trg"] = pre_process_logical_form(example["logical form"])
 
         for idx, example in enumerate(val):
             if test_lang != "en":
                 if backtranslated:
-                    val[idx]['src'] = example["back translated text"]
+                    val[idx]["src"] = example["back translated text"]
                 else:
-                    val[idx]['src'] = example["translated text"]
+                    val[idx]["src"] = example["translated text"]
             else:
-                val[idx]['src'] = example["text"]
-            val[idx]['trg'] = pre_process_logical_form(
-                example["logical form"])
+                val[idx]["src"] = example["text"]
+            val[idx]["trg"] = pre_process_logical_form(example["logical form"])
 
         for idx, example in enumerate(test):
             if test_lang != "en":
                 if backtranslated:
-                    test[idx]['src'] = example["back translated text"]
+                    test[idx]["src"] = example["back translated text"]
                 else:
-                    test[idx]['src'] = example["translated text"]
+                    test[idx]["src"] = example["translated text"]
             else:
-                test[idx]['src'] = example["text"]
-            test[idx]['trg'] = pre_process_logical_form(
-                example["logical form"])
+                test[idx]["src"] = example["text"]
+            test[idx]["trg"] = pre_process_logical_form(example["logical form"])
 
     train_data = Dataset.from_pandas(pd.DataFrame(data=train))
 
@@ -227,11 +228,11 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated = False):
 
     dataset = DatasetDict()
 
-    dataset['train'] = train_data
+    dataset["train"] = train_data
 
-    dataset['val'] = val_data
+    dataset["val"] = val_data
 
-    dataset['test'] = test_data
+    dataset["test"] = test_data
 
     return dataset
 
@@ -242,36 +243,42 @@ def preprocess(examples, tokenizer, lang):
         prefix = f"Parse from {lang} to english logical form: "
     else:
         prefix = ""
-    
+
     if "indicbart" in tokenizer.name_or_path.lower():
         suffix = f" <\s> <2{lang}>"
     else:
         suffix = ""
-        
 
-    inputs = [prefix + example + suffix for example in examples['src']]
-    targets = [example for example in examples['trg']]
-    
-    
-        
+    inputs = [prefix + example + suffix for example in examples["src"]]
+    targets = [example for example in examples["trg"]]
+
     model_inputs = tokenizer(
-        inputs, max_length = tokenizer.max_source_length, padding="max_length",
-        truncation=True, add_special_tokens= False if suffix else True)
+        inputs,
+        max_length=tokenizer.max_source_length,
+        padding="max_length",
+        truncation=True,
+        add_special_tokens=False if suffix else True,
+    )
 
     with tokenizer.as_target_tokenizer():
-        labels = tokenizer(targets, max_length = tokenizer.max_target_length,
-                           padding="max_length", truncation=True)
+        labels = tokenizer(
+            targets,
+            max_length=tokenizer.max_target_length,
+            padding="max_length",
+            truncation=True,
+        )
 
     labels["input_ids"] = [
-                [(l if l != tokenizer.pad_token_id else -100) for l in label] for label in labels["input_ids"]
-            ]
+        [(l if l != tokenizer.pad_token_id else -100) for l in label]
+        for label in labels["input_ids"]
+    ]
 
     model_inputs["labels"] = labels["input_ids"]
     return model_inputs
 
 
 def get_tokenizer(model_checkpoint, lang):
-    tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, cache_dir = "models/")
+    tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, cache_dir="models/")
     tokenizer.bos_token = "<s>"
     tokenizer.eos_token = "</s>"
 
@@ -279,11 +286,12 @@ def get_tokenizer(model_checkpoint, lang):
     tokenizer.eos_id = tokenizer._convert_token_to_id_with_added_voc("</s>")
     tokenizer.pad_id = tokenizer._convert_token_to_id_with_added_voc("<pad>")
 
-    tokenizer.add_tokens(['[', ']', 'SL:', "IN:"] +
-                         [f'<2{lang}>' for lang in INDIC]) if "indicbart" in model_checkpoint.lower() else []
-    
+    tokenizer.add_tokens(
+        ["[", "]", "SL:", "IN:"] + [f"<2{lang}>" for lang in INDIC]
+    ) if "indicbart" in model_checkpoint.lower() else []
+
     tokenizer.model_max_length = 128
-        # Define label pad token id
+    # Define label pad token id
     label_pad_token_id = -100
     padding = True
 
@@ -298,18 +306,21 @@ def get_model(model_checkpoint, tokenizer, encoder_decoder=False):
 
     if encoder_decoder:
         model = EncoderDecoderModel.from_encoder_decoder_pretrained(
-            model_checkpoint, model_checkpoint, tie_encoder_decoder=True)
+            model_checkpoint, model_checkpoint, tie_encoder_decoder=True
+        )
 
     else:
-        model = AutoModelForSeq2SeqLM.from_pretrained(model_checkpoint, cache_dir = "models/")
+        model = AutoModelForSeq2SeqLM.from_pretrained(
+            model_checkpoint, cache_dir="models/"
+        )
 
     if encoder_decoder:
         model.config.decoder_start_token_id = tokenizer.bos_token_id
         model.config.eos_token_id = tokenizer.eos_token_id
         model.config.pad_token_id = tokenizer.pad_token_id
-        
+
         model.config.max_length = 128
-            
+
         model.config.early_stopping = True
         model.config.no_repeat_ngram_size = 1
         model.config.length_penalty = 2.0
@@ -323,35 +334,40 @@ def get_model(model_checkpoint, tokenizer, encoder_decoder=False):
     else:
         model.resize_token_embeddings(len(tokenizer))
 
-#     if "mbart" in model_checkpoint:
-#         model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[lang]]
+    #     if "mbart" in model_checkpoint:
+    #         model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[lang]]
 
-#     else:
-#         model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(
-#             lang)
+    #     else:
+    #         model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(
+    #             lang)
 
     return model
 
 
-def prepare_dataset(dataset, dataset_name, tokenizer, model, train_lang = "en", test_lang = "en"):
-    
-    
+def prepare_dataset(
+    dataset, dataset_name, tokenizer, model, train_lang="en", test_lang="en"
+):
+
     tokenizer.max_target_length = 128
     tokenizer.max_source_length = 128
-    
+
     if "mbart" in tokenizer.name_or_path:
         tokenizer.src_lang = mbart_dict[train_lang]
         tokenizer.tgt_lang = "en_XX"
-#         model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[train_lang]]
+    #         model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[train_lang]]
 
-#     else:
-#         model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(train_lang)
+    #     else:
+    #         model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(train_lang)
 
     new_dataset = DatasetDict()
-    
-    new_dataset['train'] = dataset['train'].map(lambda x: preprocess(
-        x, tokenizer, train_lang), batched=True, remove_columns=dataset['train'].column_names, desc=f"Preprocessing {train_lang} train data")
-    
+
+    new_dataset["train"] = dataset["train"].map(
+        lambda x: preprocess(x, tokenizer, train_lang),
+        batched=True,
+        remove_columns=dataset["train"].column_names,
+        desc=f"Preprocessing {train_lang} train data",
+    )
+
     if "mbart" in tokenizer.name_or_path:
         tokenizer.src_lang = mbart_dict[test_lang]
         tokenizer.tgt_lang = "en_XX"
@@ -359,46 +375,57 @@ def prepare_dataset(dataset, dataset_name, tokenizer, model, train_lang = "en", 
     # else:
     #     model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(test_lang)
 
+    new_dataset["val"] = dataset["val"].map(
+        lambda x: preprocess(x, tokenizer, test_lang),
+        batched=True,
+        remove_columns=dataset["val"].column_names,
+        desc=f"Preprocessing {test_lang} validation data",
+    )
 
-    new_dataset['val'] = dataset['val'].map(lambda x: preprocess(
-        x, tokenizer, test_lang), batched=True, remove_columns=dataset['val'].column_names, desc= f"Preprocessing {test_lang} validation data")
-    
-    new_dataset['test'] = dataset['test'].map(lambda x: preprocess(
-        x, tokenizer, test_lang), batched=True, remove_columns=dataset['test'].column_names, desc=f"Preprocessing {test_lang} test data")
+    new_dataset["test"] = dataset["test"].map(
+        lambda x: preprocess(x, tokenizer, test_lang),
+        batched=True,
+        remove_columns=dataset["test"].column_names,
+        desc=f"Preprocessing {test_lang} test data",
+    )
 
-    if "token_type_ids" in new_dataset['train'].column_names:
-        new_dataset['train'] = new_dataset['train'].remove_columns("token_type_ids")
-        new_dataset['val'] = new_dataset['val'].remove_columns("token_type_ids")
-        new_dataset['test'] = new_dataset['test'].remove_columns("token_type_ids")
+    if "token_type_ids" in new_dataset["train"].column_names:
+        new_dataset["train"] = new_dataset["train"].remove_columns("token_type_ids")
+        new_dataset["val"] = new_dataset["val"].remove_columns("token_type_ids")
+        new_dataset["test"] = new_dataset["test"].remove_columns("token_type_ids")
 
     return new_dataset
 
 
-def create_dataloaders(dataset, train_batch_size=1, eval_batch_size=1, loader_type= None, collate_fn=default_data_collator):
+def create_dataloaders(
+    dataset,
+    train_batch_size=1,
+    eval_batch_size=1,
+    loader_type=None,
+    collate_fn=default_data_collator,
+):
     if loader_type == "test":
         dataloader = DataLoader(
-                                    dataset, 
-                                    shuffle=False, 
-                                    batch_size=eval_batch_size, 
-                                    collate_fn=collate_fn
-                                    )
+            dataset, shuffle=False, batch_size=eval_batch_size, collate_fn=collate_fn
+        )
         return dataloader
-        
+
     else:
         train_dataloader = DataLoader(
-                                    dataset['train'], 
-                                    shuffle=True, 
-                                    batch_size=train_batch_size, 
-                                    collate_fn=collate_fn
-                                    )
+            dataset["train"],
+            shuffle=True,
+            batch_size=train_batch_size,
+            collate_fn=collate_fn,
+        )
         val_dataloader = DataLoader(
-                                    dataset['val'], 
-                                    shuffle=False, 
-                                    batch_size=eval_batch_size, 
-                                    collate_fn=collate_fn
-                                    )
-    
+            dataset["val"],
+            shuffle=False,
+            batch_size=eval_batch_size,
+            collate_fn=collate_fn,
+        )
+
         return train_dataloader, val_dataloader
+
 
 hyperparameters = {
     "learning_rate": 1e-3,
@@ -412,7 +439,7 @@ hyperparameters = {
     "output_dir": "/content/",
     "gradient_accumulation_steps": 4,
     "num_warmup_steps": 500,
-    "weight_decay": 0.0
+    "weight_decay": 0.0,
 }
 
 # import datasets
@@ -420,7 +447,9 @@ hyperparameters = {
 
 def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
     # Initialize accelerator
-    accelerator = Accelerator(gradient_accumulation_steps=hyperparameters['gradient_accumulation_steps'])
+    accelerator = Accelerator(
+        gradient_accumulation_steps=hyperparameters["gradient_accumulation_steps"]
+    )
 
     # To have only one message (and not 8) per logs of Transformers or Datasets, we set the logging verbosity
     # to INFO for the main process only.
@@ -437,74 +466,81 @@ def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
     set_seed(hyperparameters["seed"])
 
     data_collator = DataCollatorForSeq2Seq(
-                                        tokenizer = tokenizer,
-                                        model = model,
-                                        label_pad_token_id = -100,
-                                        pad_to_multiple_of = 8
-                                    )
+        tokenizer=tokenizer, model=model, label_pad_token_id=-100, pad_to_multiple_of=8
+    )
 
-    train_dataloader, val_dataloader = create_dataloaders(  
-                                                        dataset,
-                                                        train_batch_size=hyperparameters["train_batch_size"], 
-                                                        eval_batch_size=hyperparameters["eval_batch_size"],
-                                                        collate_fn=data_collator
-                                                    )
-    
-    
+    train_dataloader, val_dataloader = create_dataloaders(
+        dataset,
+        train_batch_size=hyperparameters["train_batch_size"],
+        eval_batch_size=hyperparameters["eval_batch_size"],
+        collate_fn=data_collator,
+    )
 
     # Instantiate optimizer
     no_decay = ["bias", "LayerNorm.weight"]
     optimizer_grouped_parameters = [
         {
-            "params": [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)],
+            "params": [
+                p
+                for n, p in model.named_parameters()
+                if not any(nd in n for nd in no_decay)
+            ],
             "weight_decay": hyperparameters["weight_decay"],
         },
         {
-            "params": [p for n, p in model.named_parameters() if any(nd in n for nd in no_decay)],
+            "params": [
+                p
+                for n, p in model.named_parameters()
+                if any(nd in n for nd in no_decay)
+            ],
             "weight_decay": 0.0,
         },
     ]
-    optimizer = torch.optim.AdamW(optimizer_grouped_parameters, lr=hyperparameters["learning_rate"])
+    optimizer = torch.optim.AdamW(
+        optimizer_grouped_parameters, lr=hyperparameters["learning_rate"]
+    )
 
-    
     # There is no specific order to remember, we just need to unpack the objects in the same order we gave them to the
     # prepare method.
-    
+
     lr_scheduler = get_scheduler(
         name="linear",
         optimizer=optimizer,
         num_warmup_steps=hyperparameters["num_warmup_steps"],
         num_training_steps=len(train_dataloader) * hyperparameters["num_epochs"],
     )
-    
 
     (
-    model,
-    optimizer, 
-    train_dataloader, 
-    val_dataloader,
-    lr_scheduler
-     ) = accelerator.prepare(
-                            model, 
-                            optimizer, 
-                            train_dataloader, 
-                            val_dataloader, 
-                            lr_scheduler
-                            )
-    
+        model,
+        optimizer,
+        train_dataloader,
+        val_dataloader,
+        lr_scheduler,
+    ) = accelerator.prepare(
+        model, optimizer, train_dataloader, val_dataloader, lr_scheduler
+    )
+
     # Now we train the model
     epochs_no_improve = 0
     min_val_loss = 1000000
 
-    model_name = model.name_or_path if model.name_or_path else model.encoder.name_or_path
-    accelerator.print(f"===============================================================================================")
+    model_name = (
+        model.name_or_path if model.name_or_path else model.encoder.name_or_path
+    )
+    accelerator.print(
+        f"==============================================================================================="
+    )
     accelerator.print(f"\t\t{model_name}\t\t\t{model.num_parameters()//1000_000} M")
-    accelerator.print(f"===============================================================================================")
+    accelerator.print(
+        f"==============================================================================================="
+    )
 
     for epoch in range(hyperparameters["num_epochs"]):
         # We only enable the progress bar on the main process to avoid having 8 progress bars.
-        progress_bar = tqdm(range(len(train_dataloader)), disable=not accelerator.is_main_process)
-        
+        progress_bar = tqdm(
+            range(len(train_dataloader)), disable=not accelerator.is_main_process
+        )
+
         progress_bar.set_description(f"Epoch: {epoch}")
         model.train()
 
@@ -519,8 +555,7 @@ def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
                 optimizer.zero_grad()
 
                 progress_bar.update(1)
-                progress_bar.set_postfix({'loss': loss.item()})
-            
+                progress_bar.set_postfix({"loss": loss.item()})
 
         # Evaluate at the end of the epoch (distributed evaluation as we have 8 TPU cores)
         model.eval()
@@ -529,26 +564,22 @@ def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
         for step, batch in enumerate(val_dataloader):
             with torch.no_grad():
                 outputs = model(**batch)
-            
+
             loss = outputs.loss
 
             # We gather the loss from the 8 TPU cores to have them all.
             validation_losses.append(accelerator.gather(loss[None]))
 
-
         # Compute average validation loss
         val_loss = torch.stack(validation_losses).mean().item()
         # Use accelerator.print to print only on the main process.
         accelerator.print(f"epoch {epoch}: validation loss:", val_loss)
-        
 
         progress_bar.update(1)
-        progress_bar.set_postfix({
-                "epoch":epoch,
-                "val_loss": val_loss
-            },)
+        progress_bar.set_postfix(
+            {"epoch": epoch, "val_loss": val_loss},
+        )
 
-       
         if val_loss < min_val_loss:
             epochs_no_improve = 0
             min_val_loss = val_loss
@@ -556,7 +587,7 @@ def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
             # output_dir = os.path.join(hyperparameters["output_dir"], output_dir)
             # accelerator.save_state(output_dir)
             continue
-            
+
         else:
             epochs_no_improve += 1
             # Check early stopping condition
@@ -572,18 +603,19 @@ def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
 
     # model = accelerator.unwrap_model(model)
 
+
 base_path = "results"
 
 
-def make_pth(strategy, dataset,model, lang = None):
+def make_pth(strategy, dataset, model, lang=None):
 
-    
     if lang:
         path = f"{base_path}/{strategy}/{dataset}/{model}/{lang}"
     else:
-        path = f"{base_path}/{strategy}/{dataset}/{model}" 
+        path = f"{base_path}/{strategy}/{dataset}/{model}"
 
     return path
+
 
 def postprocess_text(preds, labels):
     preds = [post_process_logical_form(pred.strip()) for pred in preds]
@@ -591,25 +623,28 @@ def postprocess_text(preds, labels):
 
     return preds, labels
 
+
 def post_process_logical_form(sent):
-    x = sent.replace('[','[ ')
-    x = x.replace(']',' ]')
-    x = x.replace('SLOT:',' SL: ')
-    x = x.replace('INTENT:',' IN: ')
-    x = re.sub(r'\s+', ' ', x)
+    x = sent.replace("[", "[ ")
+    x = x.replace("]", " ]")
+    x = x.replace("SLOT:", " SL: ")
+    x = x.replace("INTENT:", " IN: ")
+    x = re.sub(r"\s+", " ", x)
     return x
+
 
 def normalize_answer(s):
     """Lower text and remove punctuation, articles and extra whitespace."""
+
     def remove_articles(text):
-        return re.sub(r'\b(a|an|the)\b', ' ', text)
+        return re.sub(r"\b(a|an|the)\b", " ", text)
 
     def white_space_fix(text):
-        return ' '.join(text.split())
+        return " ".join(text.split())
 
     def remove_punc(text):
         exclude = set(string.punctuation)
-        return ''.join(ch for ch in text if ch not in exclude)
+        return "".join(ch for ch in text if ch not in exclude)
 
     def lower(text):
         return text.lower()
@@ -643,141 +678,156 @@ def evaluate(gold_answers, predictions, tokenizer):
         dist = lev.ratio(prediction.lower(), ground_truth.lower())
 
         exact_matches.append(exact_match_metric)
-        scores.append(f1)   
+        scores.append(f1)
         lev_dist.append(dist)
 
-    return {'exact_match': exact_matches, 'f1': scores, "levenshtein_distance": lev_dist}
+    return {
+        "exact_match": exact_matches,
+        "f1": scores,
+        "levenshtein_distance": lev_dist,
+    }
+
 
 def exact_match(decoded_preds, decoded_labels, tokenizer):
-    
-    result = metric.compute(predictions=decoded_preds, references=decoded_labels, regexes_to_ignore=[r"\s+"], ignore_case=True, ignore_punctuation=True)
+
+    result = metric.compute(
+        predictions=decoded_preds,
+        references=decoded_labels,
+        regexes_to_ignore=[r"\s+"],
+        ignore_case=True,
+        ignore_punctuation=True,
+    )
     result = {"exact_match": result["exact_match"]}
 
-    prediction_lens = [np.count_nonzero(pred != tokenizer.pad_token_id) for pred in decoded_preds]
-    
+    prediction_lens = [
+        np.count_nonzero(pred != tokenizer.pad_token_id) for pred in decoded_preds
+    ]
+
     result = {k: round(v, 4) for k, v in result.items()}
     return round(result["exact_match"], 1)
 
-def generate(model, tokenizer, dataset, raw_dataset, technique, dataset_name, lang, hyperparameters=hyperparameters):
-    
+
+def generate(
+    model,
+    tokenizer,
+    dataset,
+    raw_dataset,
+    technique,
+    dataset_name,
+    lang,
+    hyperparameters=hyperparameters,
+):
+
     accelerator = Accelerator()
 
-    accelerator.print('generating predictions ........')
+    accelerator.print("generating predictions ........")
 
     data_collator = DataCollatorForSeq2Seq(
-                                        tokenizer=tokenizer, 
-                                        model=model, 
-                                        label_pad_token_id=-100,
-                                        pad_to_multiple_of=8
-                                    )
+        tokenizer=tokenizer, model=model, label_pad_token_id=-100, pad_to_multiple_of=8
+    )
 
     data_loader = create_dataloaders(
-                                        dataset, 
-                                        eval_batch_size=8, 
-                                        loader_type="test",
-                                        collate_fn=data_collator
-                                        )
-    
+        dataset, eval_batch_size=8, loader_type="test", collate_fn=data_collator
+    )
+
     model, data_loader = accelerator.prepare(model, data_loader)
 
     # this will set a different random seed per device
-    
+
     torch.manual_seed(random.randrange(0, 10000))
     preds = []
     labels = []
 
-    progress_bar = tqdm(range(len(data_loader)), disable=not accelerator.is_main_process)
+    progress_bar = tqdm(
+        range(len(data_loader)), disable=not accelerator.is_main_process
+    )
 
     for step, batch in enumerate(data_loader):
-        with torch.no_grad():            
-        
+        with torch.no_grad():
+
             generated_tokens = accelerator.unwrap_model(model).generate(
-                                                batch["input_ids"],
-                                                attention_mask=batch["attention_mask"],
-                                                num_beams=2,
-                                                max_length= 128,
-                                                use_cache=True,
-                                                num_return_sequences=1,
-                                                early_stopping=True
-                                             )
-            
+                batch["input_ids"],
+                attention_mask=batch["attention_mask"],
+                num_beams=2,
+                max_length=128,
+                use_cache=True,
+                num_return_sequences=1,
+                early_stopping=True,
+            )
+
             generated_tokens = accelerator.pad_across_processes(
-            generated_tokens, dim=1, pad_index=tokenizer.pad_token_id
+                generated_tokens, dim=1, pad_index=tokenizer.pad_token_id
             )
             generated_tokens = accelerator.gather(generated_tokens).cpu().numpy()
-            
 
-            decoded_preds = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
+            decoded_preds = tokenizer.batch_decode(
+                generated_tokens, skip_special_tokens=True
+            )
 
-
-            label_batch = accelerator.pad_across_processes(batch["labels"], dim=1, pad_index=tokenizer.pad_token_id)
+            label_batch = accelerator.pad_across_processes(
+                batch["labels"], dim=1, pad_index=tokenizer.pad_token_id
+            )
             label_batch = accelerator.gather(label_batch).cpu().numpy()
 
-            label_batch = np.where(label_batch != -100, label_batch, tokenizer.pad_token_id)
-            decoded_labels = tokenizer.batch_decode(label_batch, skip_special_tokens=True)
+            label_batch = np.where(
+                label_batch != -100, label_batch, tokenizer.pad_token_id
+            )
+            decoded_labels = tokenizer.batch_decode(
+                label_batch, skip_special_tokens=True
+            )
 
-
-            decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
-
+            decoded_preds, decoded_labels = postprocess_text(
+                decoded_preds, decoded_labels
+            )
 
             preds += decoded_preds
 
             labels += decoded_labels
 
         progress_bar.update(1)
-        progress_bar.set_postfix({'steps': step})
-    
-    
+        progress_bar.set_postfix({"steps": step})
+
     if accelerator.is_main_process:
 
-        model_name = model.name_or_path if model.name_or_path else model.encoder.name_or_path
-        model_name = model_name.split("/")[-1] if '/' in model_name else model_name
+        model_name = (
+            model.name_or_path if model.name_or_path else model.encoder.name_or_path
+        )
+        model_name = model_name.split("/")[-1] if "/" in model_name else model_name
 
         if technique == "crosslingual_transfer":
             pth = make_pth(technique, dataset_name, model_name, lang)
-        
+
         else:
             pth = make_pth(technique, dataset_name, model_name)
-        
 
-        save_data = {k:raw_dataset[k] for k in raw_dataset.column_names}
-        
-        save_data['predictions'] = preds
-        save_data['labels'] = labels
+        save_data = {k: raw_dataset[k] for k in raw_dataset.column_names}
 
-        save_data['trg'], _ =  postprocess_text(save_data['trg'], [])
+        save_data["predictions"] = preds
+        save_data["labels"] = labels
 
+        save_data["trg"], _ = postprocess_text(save_data["trg"], [])
 
-        metrics = evaluate(save_data['labels'], save_data['predictions'], tokenizer)
+        metrics = evaluate(save_data["labels"], save_data["predictions"], tokenizer)
 
-        for k,v in metrics.items():
+        for k, v in metrics.items():
             save_data[k] = v
-
 
         save_dict = pd.DataFrame(save_data).to_dict("records")
 
+        with open(f"{pth}/{lang}.json", "w", encoding="utf8") as f:
+            json.dump({"outputs": save_dict}, f, indent=6, ensure_ascii=False)
 
-        with open(f"{pth}/{lang}.json","w",encoding='utf8') as f:
-            json.dump({
-                        "outputs": save_dict
-                    }, 
-                    f, indent=6, ensure_ascii=False)
-        
     accelerator.wait_for_everyone()
 
 
-
 def remove_model():
-    files = glob.glob('models/*')
+    files = glob.glob("models/*")
     for f in files:
         os.remove(f)
 
 
-
-
 def get_args():
-    parser = argparse.ArgumentParser(
-        description="Simple example of training script.")
+    parser = argparse.ArgumentParser(description="Simple example of training script.")
     parser.add_argument(
         "--mixed_precision",
         type=str,
@@ -787,8 +837,9 @@ def get_args():
         "between fp16 and bf16 (bfloat16). Bf16 requires PyTorch >= 1.10."
         "and an Nvidia Ampere GPU.",
     )
-    parser.add_argument("--cpu", action="store_true",
-                        help="If passed, will train on the CPU.")
+    parser.add_argument(
+        "--cpu", action="store_true", help="If passed, will train on the CPU."
+    )
     parser.add_argument(
         "--checkpointing_steps",
         type=str,
