@@ -8,7 +8,7 @@ apt-get update && apt-get upgrade -y
 apt-get install tmux git-lfs htop gcc -y
 
 pip install setuptools
-pip install -r requirements.txt
+# pip install -r requirements.txt
 
 echo "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" > ~/.huggingface
 

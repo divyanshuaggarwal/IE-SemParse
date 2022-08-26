@@ -35,6 +35,8 @@ seed_everything(42)
 
 technique = "indic_train"
 
+base_path = "results/"
+
 for dataset_name in dataset_names:
     if "indic_train" not in os.listdir(base_path):
         os.mkdir(os.path.join(base_path, "indic_train"))

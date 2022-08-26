@@ -1067,11 +1067,11 @@ def get_trainer(auto_scale_batch_size=False):
     # ------------------------
     # 3 INIT TRAINER
     # ------------------------
-    AVAIL_GPUS = min(1, torch.cuda.device_count())
+    AVAIL_GPUS = max(1, torch.cuda.device_count())
 
     trainer = Trainer(
         # default_root_dir="/content/",
-        precision="bf16",
+        precision=16,
         accelerator="auto",
         devices="auto",
         progress_bar_refresh_rate=5,

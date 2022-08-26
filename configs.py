@@ -53,11 +53,11 @@ hyperparameters = {
 
 
 batch_sizes_gpu = {
-    "ai4bharat/IndicBART": 136,
-    "ai4bharat/IndicBART-XXEN": 136,
-    "google/mt5-base": 36,
-    "facebook/mbart-large-50": 36,
-    "facebook/mbart-large-50-many-to-one-mmt": 36,
+    "ai4bharat/IndicBART": 100,
+    "ai4bharat/IndicBART-XXEN": 100,
+    "google/mt5-base": 32,
+    "facebook/mbart-large-50": 32,
+    "facebook/mbart-large-50-many-to-one-mmt": 32,
     "xlm-roberta-base": 32,
     "google/muril-base-cased": 36,
 }
@@ -73,11 +73,11 @@ model_lr = {
 }
 
 model_epochs_gpu = {
-    "ai4bharat/IndicBART": 20,
-    "ai4bharat/IndicBART-XXEN": 20,
-    "google/mt5-base": 10,
-    "facebook/mbart-large-50": 8,
-    "facebook/mbart-large-50-many-to-one-mmt": 8,
+    "ai4bharat/IndicBART": 50,
+    "ai4bharat/IndicBART-XXEN": 50,
+    "google/mt5-base": 30,
+    "facebook/mbart-large-50": 25,
+    "facebook/mbart-large-50-many-to-one-mmt": 25,
     "xlm-roberta-base": 5,
     "google/muril-base-cased": 5,
 }

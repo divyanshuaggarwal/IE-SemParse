@@ -447,6 +447,12 @@ hyperparameters = {
 
 def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
     # Initialize accelerator
+    model_name = (
+        model.name_or_path if model.name_or_path else model.encoder.name_or_path
+    )
+
+    model_parameters = model.num_parameters()
+
     accelerator = Accelerator(
         gradient_accumulation_steps=hyperparameters["gradient_accumulation_steps"]
     )
@@ -524,13 +530,11 @@ def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
     epochs_no_improve = 0
     min_val_loss = 1000000
 
-    model_name = (
-        model.name_or_path if model.name_or_path else model.encoder.name_or_path
-    )
+   
     accelerator.print(
         f"==============================================================================================="
     )
-    accelerator.print(f"\t\t{model_name}\t\t\t{model.num_parameters()//1000_000} M")
+    accelerator.print(f"\t\t{model_name}\t\t\t{model_parameters//1000_000} M")
     accelerator.print(
         f"==============================================================================================="
     )
@@ -596,7 +600,7 @@ def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
                 break
 
     # save trained model
-    accelerator.wait_for_everyone()
+    # accelerator.wait_for_everyone()
     # unwrapped_model = accelerator.unwrap_model(model)
     # Use accelerator.save to save
     # unwrapped_model.save_pretrained(hyperparameters["output_dir"], save_function=accelerator.save)
@@ -718,6 +722,10 @@ def generate(
     hyperparameters=hyperparameters,
 ):
 
+    model_name = (
+            model.name_or_path if model.name_or_path else model.encoder.name_or_path
+        )
+
     accelerator = Accelerator()
 
     accelerator.print("generating predictions ........")
@@ -742,6 +750,7 @@ def generate(
         range(len(data_loader)), disable=not accelerator.is_main_process
     )
 
+    samples_seen = 0
     for step, batch in enumerate(data_loader):
         with torch.no_grad():
 
@@ -779,7 +788,12 @@ def generate(
             decoded_preds, decoded_labels = postprocess_text(
                 decoded_preds, decoded_labels
             )
-
+            if accelerator.num_processes > 1:
+                    if step == len(data_loader) - 1:
+                        decoded_preds = decoded_preds[: len(data_loader.dataset) - samples_seen]
+                        decoded_labels = decoded_labels[: len(data_loader.dataset) - samples_seen]
+                    else:
+                        samples_seen += len(decoded_labels)
             preds += decoded_preds
 
             labels += decoded_labels
@@ -787,11 +801,7 @@ def generate(
         progress_bar.update(1)
         progress_bar.set_postfix({"steps": step})
 
-    if accelerator.is_main_process:
-
-        model_name = (
-            model.name_or_path if model.name_or_path else model.encoder.name_or_path
-        )
+    with accelerator.main_process_first():
         model_name = model_name.split("/")[-1] if "/" in model_name else model_name
 
         if technique == "crosslingual_transfer":
