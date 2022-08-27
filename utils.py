@@ -833,7 +833,10 @@ def generate(
 def remove_model():
     files = glob.glob("models/*")
     for f in files:
-        os.remove(f)
+        try:
+            os.remove(f)
+        except:
+            pass
 
 
 def get_args():
