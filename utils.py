@@ -482,6 +482,8 @@ def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
         collate_fn=data_collator,
     )
 
+    model = accelerator.prepare(model)
+
     # Instantiate optimizer
     no_decay = ["bias", "LayerNorm.weight"]
     optimizer_grouped_parameters = [
@@ -502,6 +504,7 @@ def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
             "weight_decay": 0.0,
         },
     ]
+
     optimizer = torch.optim.AdamW(
         optimizer_grouped_parameters, lr=hyperparameters["learning_rate"]
     )
@@ -515,8 +518,6 @@ def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
         num_warmup_steps=hyperparameters["num_warmup_steps"],
         num_training_steps=len(train_dataloader) * hyperparameters["num_epochs"],
     )
-
-    model = accelerator.prepare(model)
 
     (
         optimizer,
