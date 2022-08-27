@@ -516,14 +516,15 @@ def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
         num_training_steps=len(train_dataloader) * hyperparameters["num_epochs"],
     )
 
+    model = accelerator.prepare(model)
+
     (
-        model,
         optimizer,
         train_dataloader,
         val_dataloader,
         lr_scheduler,
     ) = accelerator.prepare(
-        model, optimizer, train_dataloader, val_dataloader, lr_scheduler
+            optimizer, train_dataloader, val_dataloader, lr_scheduler
     )
 
     # Now we train the model
