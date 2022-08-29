@@ -278,7 +278,11 @@ def preprocess(examples, tokenizer, lang):
 
 
 def get_tokenizer(model_checkpoint, lang):
-    tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, cache_dir="models/")
+    
+    tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, 
+                                             cache_dir="models/", 
+                                             use_fast=False if "mt5" in model_checkpoint.lower() else True)
+
     tokenizer.bos_token = "<s>"
     tokenizer.eos_token = "</s>"
 
