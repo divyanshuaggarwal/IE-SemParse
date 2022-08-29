@@ -23,7 +23,7 @@ import itertools
 import math
 import numpy as np
 from accelerate.logging import get_logger
-from accelerate import Accelerator, notebook_launcher
+from accelerate import Accelerator
 from transformers import (
     AutoModelForSeq2SeqLM,
     EncoderDecoderModel,
@@ -278,10 +278,12 @@ def preprocess(examples, tokenizer, lang):
 
 
 def get_tokenizer(model_checkpoint, lang):
-    
-    tokenizer = AutoTokenizer.from_pretrained(model_checkpoint, 
-                                             cache_dir="models/", 
-                                             use_fast=False if "mt5" in model_checkpoint.lower() else True)
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        model_checkpoint,
+        cache_dir="models/",
+        use_fast=False if "mt5" in model_checkpoint.lower() else True,
+    )
 
     tokenizer.bos_token = "<s>"
     tokenizer.eos_token = "</s>"
@@ -528,15 +530,12 @@ def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
         train_dataloader,
         val_dataloader,
         lr_scheduler,
-    ) = accelerator.prepare(
-            optimizer, train_dataloader, val_dataloader, lr_scheduler
-    )
+    ) = accelerator.prepare(optimizer, train_dataloader, val_dataloader, lr_scheduler)
 
     # Now we train the model
     epochs_no_improve = 0
     min_val_loss = 1000000
 
-   
     accelerator.print(
         f"==============================================================================================="
     )
@@ -729,8 +728,8 @@ def generate(
 ):
 
     model_name = (
-            model.name_or_path if model.name_or_path else model.encoder.name_or_path
-        )
+        model.name_or_path if model.name_or_path else model.encoder.name_or_path
+    )
 
     accelerator = Accelerator()
 
@@ -795,11 +794,15 @@ def generate(
                 decoded_preds, decoded_labels
             )
             if accelerator.num_processes > 1:
-                    if step == len(data_loader) - 1:
-                        decoded_preds = decoded_preds[: len(data_loader.dataset) - samples_seen]
-                        decoded_labels = decoded_labels[: len(data_loader.dataset) - samples_seen]
-                    else:
-                        samples_seen += len(decoded_labels)
+                if step == len(data_loader) - 1:
+                    decoded_preds = decoded_preds[
+                        : len(data_loader.dataset) - samples_seen
+                    ]
+                    decoded_labels = decoded_labels[
+                        : len(data_loader.dataset) - samples_seen
+                    ]
+                else:
+                    samples_seen += len(decoded_labels)
             preds += decoded_preds
 
             labels += decoded_labels
