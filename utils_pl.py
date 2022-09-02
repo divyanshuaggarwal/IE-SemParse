@@ -1067,14 +1067,14 @@ def get_trainer(auto_scale_batch_size=False):
     # ------------------------
     # 3 INIT TRAINER
     # ------------------------
-    AVAIL_GPUS = max(1, torch.cuda.device_count())
+    AVAIL_GPUS = max(0, torch.cuda.device_count())
 
     trainer = Trainer(
         # default_root_dir="/content/",
         precision=16,
         accelerator="auto",
         devices="auto",
-        progress_bar_refresh_rate=5,
+        # progress_bar_refresh_rate=5,
         enable_progress_bar=True,
         val_check_interval=0.5,
         auto_scale_batch_size="power" if auto_scale_batch_size else None,
@@ -1088,7 +1088,7 @@ def get_trainer(auto_scale_batch_size=False):
         # fast_dev_run=True,
         # limit_train_batches = 0.2,
         auto_lr_find="lr" if not auto_scale_batch_size else None,
-        stochastic_weight_avg=True,
+        # stochastic_weight_avg=True,
         gradient_clip_val=0.5,
         # strategy="ddp_sharded"
         accumulate_grad_batches=4,

@@ -100,7 +100,7 @@ for dataset_name in dataset_names:
             # pl_model, dm = tune(pl_model, dm)
 
             trainer = get_trainer()
-            trainer.tune(pl_model, dm)
+            # trainer.tune(pl_model, dm)
 
             gc.collect()
             torch.cuda.empty_cache()

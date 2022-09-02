@@ -78,7 +78,7 @@ def main():
                 )
 
                 # notebook_launcher(_generate, use_fp16 = True)
-            remove_model()
+            # remove_model()
 
 
 if __name__ == "__main__":
