@@ -98,14 +98,6 @@ mbart_dict = {
 INDIC = ["hi", "bn", "mr", "as", "ta", "te", "or", "ml", "pa", "gu", "kn"]
 
 
-def pre_process_logical_form(sent):
-    # x = sent.replace("[", "[ ")
-    # x = x.replace("]", " ]")
-    # x = x.replace("SL:", " SLOT: ")
-    # x = x.replace("IN:", " INTENT: ")
-    # x = re.sub(r"\s+", " ", x)
-    # return x
-    return sent
 
 
 def create_dataset(dataset, train_lang, test_lang, backtranslated=False):
@@ -138,7 +130,7 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated=False):
                 train[idx]["src"] = example["postprocessed_translated_question"]
             else:
                 train[idx]["src"] = example["question"]
-            train[idx]["trg"] = pre_process_logical_form(example["logical_form"])
+            train[idx]["trg"] = example["logical_form"]
 
         for idx, example in enumerate(val):
             if test_lang != "en":
@@ -148,7 +140,7 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated=False):
                     val[idx]["src"] = example["postprocessed_translated_question"]
             else:
                 val[idx]["src"] = example["question"]
-            val[idx]["trg"] = pre_process_logical_form(example["logical_form"])
+            val[idx]["trg"] = example["logical_form"]
 
         for idx, example in enumerate(test):
             if test_lang != "en":
@@ -160,7 +152,7 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated=False):
                     test[idx]["src"] = example["postprocessed_translated_question"]
             else:
                 test[idx]["src"] = example["question"]
-            test[idx]["trg"] = pre_process_logical_form(example["logical_form"])
+            test[idx]["trg"] = example["logical_form"]
 
     elif dataset == "indic-TOP":
         for idx, example in enumerate(train):
@@ -168,9 +160,7 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated=False):
                 train[idx]["src"] = example["postprocessed_translated_question"]
             else:
                 train[idx]["src"] = example["question"]
-            train[idx]["trg"] = pre_process_logical_form(
-                example["decoupled logical form"]
-            )
+            train[idx]["trg"] = example["decoupled logical form"]
 
         for idx, example in enumerate(val):
             if test_lang != "en":
@@ -180,9 +170,7 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated=False):
                     val[idx]["src"] = example["postprocessed_translated_question"]
             else:
                 val[idx]["src"] = example["question"]
-            val[idx]["trg"] = pre_process_logical_form(
-                example["decoupled logical form"]
-            )
+            val[idx]["trg"] = example["decoupled logical form"]
 
         for idx, example in enumerate(test):
             if test_lang != "en":
@@ -194,9 +182,8 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated=False):
                     test[idx]["src"] = example["postprocessed_translated_question"]
             else:
                 test[idx]["src"] = example["question"]
-            test[idx]["trg"] = pre_process_logical_form(
-                example["decoupled logical form"]
-            )
+            test[idx]["trg"] = example["decoupled logical form"]
+            
 
     elif dataset == "indic-atis":
         for idx, example in enumerate(train):
@@ -204,7 +191,7 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated=False):
                 train[idx]["src"] = example["translated text"]
             else:
                 train[idx]["src"] = example["text"]
-            train[idx]["trg"] = pre_process_logical_form(example["logical form"])
+            train[idx]["trg"] = example["logical form"]
 
         for idx, example in enumerate(val):
             if test_lang != "en":
@@ -214,7 +201,7 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated=False):
                     val[idx]["src"] = example["translated text"]
             else:
                 val[idx]["src"] = example["text"]
-            val[idx]["trg"] = pre_process_logical_form(example["logical form"])
+            val[idx]["trg"] = example["logical form"]
 
         for idx, example in enumerate(test):
             if test_lang != "en":
@@ -224,7 +211,7 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated=False):
                     test[idx]["src"] = example["translated text"]
             else:
                 test[idx]["src"] = example["text"]
-            test[idx]["trg"] = pre_process_logical_form(example["logical form"])
+            test[idx]["trg"] = example["logical form"]
 
     train_data = Dataset.from_pandas(pd.DataFrame(data=train))
 
@@ -303,7 +290,13 @@ def get_tokenizer(model_checkpoint, dataset_name, lang):
     if "indicbart" in model_checkpoint:
         tokenizer.add_tokens([f"<2{lang}>" for lang in INDIC])
 
-    tokenizer.model_max_length = 128
+    # if "indic-atis" not in dataset_name:    
+    #     tokenizer.model_max_length = 64
+    # else:
+    #     tokenizer.model_max_length = 32
+    
+    tokenizer.model_max_length = 64
+        
     # Define label pad token id
     label_pad_token_id = -100
     padding = True
@@ -332,7 +325,7 @@ def get_model(model_checkpoint, tokenizer, encoder_decoder=False):
         model.config.eos_token_id = tokenizer.eos_token_id
         model.config.pad_token_id = tokenizer.pad_token_id
 
-        model.config.max_length = 128
+        model.config.max_length = 64
 
         model.config.early_stopping = True
         model.config.no_repeat_ngram_size = 1
@@ -361,16 +354,21 @@ def get_model(model_checkpoint, tokenizer, encoder_decoder=False):
 def prepare_dataset(
     dataset, dataset_name, tokenizer, model, train_lang="en", test_lang="en"
 ):
-
-    if "indic-atis" in dataset_name:
-        tokenizer.max_target_length = 128
-        tokenizer.max_source_length = 128
-        model.config.max_length = 128
     
-    else:
-        tokenizer.max_target_length = 64
-        tokenizer.max_source_length = 64
-        model.config.max_length = 64
+    tokenizer.max_target_length = 64
+    tokenizer.max_source_length = 64
+    model.config.max_length = 64
+    
+    
+#     if "indic-atis" in dataset_name:
+#         tokenizer.max_target_length = 64
+#         tokenizer.max_source_length = 64
+#         model.config.max_length = 64
+    
+#     else:
+#         tokenizer.max_target_length = 32
+#         tokenizer.max_source_length = 32
+#         model.config.max_length = 32
 
     if "mbart" in tokenizer.name_or_path:
         tokenizer.src_lang = mbart_dict[train_lang]
@@ -545,7 +543,11 @@ def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
         train_dataloader,
         val_dataloader,
         lr_scheduler,
-    ) = accelerator.prepare(optimizer, train_dataloader, val_dataloader, lr_scheduler)
+    ) = accelerator.prepare(optimizer, 
+                            train_dataloader,
+                            val_dataloader, 
+                            lr_scheduler
+                           )
 
     # Now we train the model
     epochs_no_improve = 0
@@ -642,20 +644,10 @@ def make_pth(strategy, dataset, model, lang=None):
 
 
 def postprocess_text(preds, labels):
-    preds = [post_process_logical_form(pred.strip()) for pred in preds]
-    labels = [post_process_logical_form(label.strip()) for label in labels]
+    preds = [pred.strip() for pred in preds]
+    labels = [label.strip() for label in labels]
 
     return preds, labels
-
-
-def post_process_logical_form(sent):
-    # x = sent.replace("[", "[")
-    # x = x.replace("]", "]")
-    # x = x.replace("SLOT:", " SL")
-    # x = x.replace("INTENT", "IN")
-    # x = re.sub(r"\s+", " ", x)
-    # return x
-    return sent
 
 
 def normalize_answer(s):
@@ -735,6 +727,33 @@ def exact_match(decoded_preds, decoded_labels, tokenizer):
     return round(result["exact_match"], 1)
 
 
+
+def post_process_lf(sent):
+    stck = 0
+    res = []
+    
+    toks = sent.split()
+    
+    
+    for tok in toks:
+        
+        if tok.startswith("["):
+            stck += 1
+        elif tok == ']':
+            stck -= 1
+        
+        res.append(tok)
+        
+        if stck == 0:
+            break
+        
+        
+    return ' '.join(res) 
+
+
+
+
+
 def generate(
     model,
     tokenizer,
@@ -782,10 +801,10 @@ def generate(
                 batch["input_ids"],
                 attention_mask=batch["attention_mask"],
                 num_beams=3,
-                max_length=128 if dataset_name == "indic-atis" else 64,
+                # max_length=64 if dataset_name == "indic-atis" else 32,
+                max_length=64,
                 use_cache=True,
-                num_return_sequences=1,
-                early_stopping=True,
+                early_stopping=True
             )
 
             generated_tokens = accelerator.pad_across_processes(
@@ -839,9 +858,10 @@ def generate(
             pth = make_pth(technique, dataset_name, model_name)
 
         save_data = {k: raw_dataset[k] for k in raw_dataset.column_names}
-
+        
+        
         save_data["predictions"] = preds
-        save_data["labels"] = labels
+        save_data["labels"] = post_process_lf(labels)
 
         save_data["trg"], _ = postprocess_text(save_data["trg"], [])
 
@@ -852,7 +872,7 @@ def generate(
 
         save_dict = pd.DataFrame(save_data).to_dict("records")
 
-        with open(f"{pth}/{lang}.json", "w", encoding="utf8") as f:
+        with open(f"{pth}/{lang}.json", "w", encoding="utf-8") as f:
             json.dump({"outputs": save_dict}, f, indent=6, ensure_ascii=False)
 
     accelerator.wait_for_everyone()
