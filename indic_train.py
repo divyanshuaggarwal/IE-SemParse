@@ -38,7 +38,7 @@ def main():
 
                 raw_dataset = create_dataset(dataset_name, lang, lang)
 
-                tokenizer = get_tokenizer(model_checkpoint, lang)
+                tokenizer = get_tokenizer(model_checkpoint, dataset_name, lang)
 
                 if model_checkpoint in encoder_models:
                     model = get_model(model_checkpoint, tokenizer, encoder_decoder=True)

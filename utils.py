@@ -51,9 +51,13 @@ import datasets
 import logging
 import json
 import torch
+from intents_slots import intents_slots
 from evaluate import *
 
 print(torch.__version__)
+
+
+torch.backends.cuda.matmul.allow_tf32 = True
 
 if torch.cuda.is_available():
     os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
@@ -279,7 +283,7 @@ def preprocess(examples, tokenizer, lang):
     return model_inputs
 
 
-def get_tokenizer(model_checkpoint, lang):
+def get_tokenizer(model_checkpoint, dataset_name, lang):
 
     tokenizer = AutoTokenizer.from_pretrained(
         model_checkpoint,
@@ -293,10 +297,11 @@ def get_tokenizer(model_checkpoint, lang):
     tokenizer.bos_id = tokenizer._convert_token_to_id_with_added_voc("<s>")
     tokenizer.eos_id = tokenizer._convert_token_to_id_with_added_voc("</s>")
     tokenizer.pad_id = tokenizer._convert_token_to_id_with_added_voc("<pad>")
-
-    tokenizer.add_tokens(
-        ["]", "[SL:", "[IN:"] + [f"<2{lang}>" for lang in INDIC]
-         if "indicbart" in model_checkpoint.lower() else ["]", "[SL:", "[IN:"])
+    
+    tokenizer.add_tokens(intents_slots[dataset_name]['intents'] + intents_slots[dataset_name]['slots'])
+    
+    if "indicbart" in model_checkpoint:
+        tokenizer.add_tokens([f"<2{lang}>" for lang in INDIC])
 
     tokenizer.model_max_length = 128
     # Define label pad token id

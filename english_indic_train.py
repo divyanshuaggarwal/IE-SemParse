@@ -7,7 +7,7 @@ def make_combined_dataset(dataset_name, lang, model_checkpoint):
     datasets = []
     for lang in ['en', lang]:
         raw_dataset = create_dataset(dataset_name, lang, lang)
-        tokenizer = get_tokenizer(model_checkpoint, lang)
+        tokenizer = get_tokenizer(model_checkpoint, dataset_name, lang)
 
         if model_checkpoint in encoder_models:
             model = get_model(model_checkpoint, tokenizer, lang, encoder_decoder=True)
@@ -74,7 +74,7 @@ def main():
                 # raw_dataset = create_dataset(dataset_name, "en", "en")
                 # # print(raw_dataset)
 
-                # tokenizer = get_tokenizer(model_checkpoint, "en")
+                # tokenizer = get_tokenizer(model_checkpoint, dataset_name, "en")
 
                 if model_checkpoint in encoder_models:
                     model = get_model(model_checkpoint, tokenizer, encoder_decoder=True)
@@ -93,7 +93,7 @@ def main():
 
                 # train(model, tokenizer, english_dataset, args, hyperparameters)
 
-                # tokenizer = get_tokenizer(model_checkpoint, lang)
+                # tokenizer = get_tokenizer(model_checkpoint, dataset_name, lang)
 
                 # raw_dataset = create_dataset(dataset_name, lang, lang)
 

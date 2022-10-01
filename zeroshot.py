@@ -45,7 +45,7 @@ def main():
                 # pprint(raw_dataset['val'][0])
                 # pprint(raw_dataset['test'][0])
 
-                tokenizer = get_tokenizer(model_checkpoint, "en")
+                tokenizer = get_tokenizer(model_checkpoint, dataset_name, "en")
 
                 if model_checkpoint in encoder_models:
                     model = get_model(model_checkpoint, tokenizer, encoder_decoder=True)

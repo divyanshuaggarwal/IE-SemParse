@@ -53,11 +53,11 @@ hyperparameters = {
 
 
 batch_sizes_gpu = {
-    "ai4bharat/IndicBART": 300,
-    "ai4bharat/IndicBART-XXEN": 300,
-    "google/mt5-base": 80,
-    "facebook/mbart-large-50": 96,
-    "facebook/mbart-large-50-many-to-one-mmt": 96,
+    "ai4bharat/IndicBART": 64,
+    "ai4bharat/IndicBART-XXEN": 64,
+    "google/mt5-base": 32,
+    "facebook/mbart-large-50": 32,
+    "facebook/mbart-large-50-many-to-one-mmt": 32,
     "xlm-roberta-base": 32,
     "google/muril-base-cased": 36,
 }
@@ -83,11 +83,11 @@ model_epochs_gpu = {
 }
 
 model_patience = {
-    "ai4bharat/IndicBART": 2,
-    "ai4bharat/IndicBART-XXEN": 2,
-    "google/mt5-base": 2,
-    "facebook/mbart-large-50": 2,
-    "facebook/mbart-large-50-many-to-one-mmt": 2,
+    "ai4bharat/IndicBART": 1,
+    "ai4bharat/IndicBART-XXEN": 1,
+    "google/mt5-base": 1,
+    "facebook/mbart-large-50": 1,
+    "facebook/mbart-large-50-many-to-one-mmt": 1,
     "xlm-roberta-base": 1,
     "google/muril-base-cased": 1,
 }
@@ -138,3 +138,5 @@ def get_args():
     )
     args = parser.parse_args()
     return args
+
+
