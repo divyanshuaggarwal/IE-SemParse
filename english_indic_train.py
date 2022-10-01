@@ -1,5 +1,38 @@
 from utils import *
 from configs import *
+from datasets import concatenate_datasets, DatasetDict
+
+
+def make_combined_dataset(dataset_name, lang, model_checkpoint):
+    datasets = []
+    for lang in ['en', lang]:
+        raw_dataset = create_dataset(dataset_name, lang, lang)
+        tokenizer = get_tokenizer(model_checkpoint, lang)
+
+        if model_checkpoint in encoder_models:
+            model = get_model(model_checkpoint, tokenizer, lang, encoder_decoder=True)
+
+        else:
+            model = get_model(model_checkpoint, tokenizer)
+
+        dataset = prepare_dataset(
+            raw_dataset, dataset_name, tokenizer, model, lang, lang
+        )
+        datasets.append(dataset)
+
+    final_dataset = DatasetDict()
+
+    final_dataset["train"] = concatenate_datasets(
+        [dataset["train"] for dataset in datasets]
+    )
+    final_dataset["val"] = concatenate_datasets(
+        [dataset["val"] for dataset in datasets]
+    )
+    final_dataset["test"] = concatenate_datasets(
+        [dataset["test"] for dataset in datasets]
+    )
+
+    return final_dataset
 
 
 def main():
@@ -38,10 +71,10 @@ def main():
                     print("Skipping.......")
                     continue
 
-                raw_dataset = create_dataset(dataset_name, "en", "en")
-                # print(raw_dataset)
+                # raw_dataset = create_dataset(dataset_name, "en", "en")
+                # # print(raw_dataset)
 
-                tokenizer = get_tokenizer(model_checkpoint, "en")
+                # tokenizer = get_tokenizer(model_checkpoint, "en")
 
                 if model_checkpoint in encoder_models:
                     model = get_model(model_checkpoint, tokenizer, encoder_decoder=True)
@@ -49,24 +82,26 @@ def main():
                 else:
                     model = get_model(model_checkpoint, tokenizer)
 
-                english_dataset = prepare_dataset(
-                    raw_dataset, dataset_name, tokenizer, "en", "en"
-                )
+                # english_dataset = prepare_dataset(
+                #     raw_dataset, dataset_name, tokenizer, "en", "en"
+                # )
 
                 hyperparameters["train_batch_size"] = batch_sizes_gpu[model_checkpoint]
                 hyperparameters["eval_batch_size"] = batch_sizes_gpu[model_checkpoint]
                 hyperparameters["num_epochs"] = model_epochs_gpu[model_checkpoint]
                 hyperparameters["learning_rate"] = model_lr[model_checkpoint]
 
-                train(model, tokenizer, english_dataset, args, hyperparameters)
+                # train(model, tokenizer, english_dataset, args, hyperparameters)
 
-                tokenizer = get_tokenizer(model_checkpoint, lang)
+                # tokenizer = get_tokenizer(model_checkpoint, lang)
 
-                raw_dataset = create_dataset(dataset_name, lang, lang)
+                # raw_dataset = create_dataset(dataset_name, lang, lang)
 
-                dataset = prepare_dataset(
-                    raw_dataset, dataset_name, tokenizer, lang, lang
-                )
+                # lang_dataset = prepare_dataset(
+                #     raw_dataset, dataset_name, tokenizer, lang, lang
+                # )
+
+                dataset = make_combined_dataset(dataset_name, lang, model_checkpoint)
 
                 train(model, tokenizer, dataset, args, hyperparameters)
 
@@ -81,7 +116,7 @@ def main():
                     hyperparameters,
                 )
 
-            # remove_model()
+            remove_model()
 
 
 if __name__ == "__main__":

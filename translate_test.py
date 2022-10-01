@@ -91,7 +91,7 @@ def main():
                     lang,
                 )
 
-            # remove_model()
+            remove_model()
 
 
 if __name__ == "__main__":

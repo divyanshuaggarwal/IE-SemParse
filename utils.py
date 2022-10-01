@@ -51,6 +51,7 @@ import datasets
 import logging
 import json
 import torch
+from evaluate import *
 
 print(torch.__version__)
 
@@ -94,35 +95,36 @@ INDIC = ["hi", "bn", "mr", "as", "ta", "te", "or", "ml", "pa", "gu", "kn"]
 
 
 def pre_process_logical_form(sent):
-    x = sent.replace("[", "[ ")
-    x = x.replace("]", " ]")
-    x = x.replace("SL:", " SLOT: ")
-    x = x.replace("IN:", " INTENT: ")
-    x = re.sub(r"\s+", " ", x)
-    return x
+    # x = sent.replace("[", "[ ")
+    # x = x.replace("]", " ]")
+    # x = x.replace("SL:", " SLOT: ")
+    # x = x.replace("IN:", " INTENT: ")
+    # x = re.sub(r"\s+", " ", x)
+    # return x
+    return sent
 
 
 def create_dataset(dataset, train_lang, test_lang, backtranslated=False):
 
     if train_lang != "en":
-        with open(f"Indic-SemParse/{dataset}/{train_lang}.json", "r") as f:
+        with open(f"Indic-SemParse/filtered_data/{dataset}/{train_lang}.json", "r") as f:
             train_data = json.load(f)
 
     else:
-        with open(f"Indic-SemParse/{dataset}/hi.json", "r") as f:
+        with open(f"Indic-SemParse/filtered_data/{dataset}/hi.json", "r") as f:
             train_data = json.load(f)
 
     if test_lang != "en":
-        with open(f"Indic-SemParse/{dataset}/{test_lang}.json", "r") as f:
+        with open(f"Indic-SemParse/filtered_data/{dataset}/{test_lang}.json", "r") as f:
             test_data = json.load(f)
 
     else:
-        with open(f"Indic-SemParse/{dataset}/hi.json", "r") as f:
+        with open(f"Indic-SemParse/filtered_data/{dataset}/hi.json", "r") as f:
             test_data = json.load(f)
 
     train = train_data["train"]
 
-    val = test_data["validation"]
+    val = test_data["val"]
 
     test = test_data["test"]
 
@@ -293,8 +295,8 @@ def get_tokenizer(model_checkpoint, lang):
     tokenizer.pad_id = tokenizer._convert_token_to_id_with_added_voc("<pad>")
 
     tokenizer.add_tokens(
-        ["[", "]", "SL:", "IN:"] + [f"<2{lang}>" for lang in INDIC]
-    ) if "indicbart" in model_checkpoint.lower() else []
+        ["]", "[SL:", "[IN:"] + [f"<2{lang}>" for lang in INDIC]
+         if "indicbart" in model_checkpoint.lower() else ["]", "[SL:", "[IN:"])
 
     tokenizer.model_max_length = 128
     # Define label pad token id
@@ -339,6 +341,7 @@ def get_model(model_checkpoint, tokenizer, encoder_decoder=False):
 
     else:
         model.resize_token_embeddings(len(tokenizer))
+        
 
     #     if "mbart" in model_checkpoint:
     #         model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[lang]]
@@ -354,8 +357,15 @@ def prepare_dataset(
     dataset, dataset_name, tokenizer, model, train_lang="en", test_lang="en"
 ):
 
-    tokenizer.max_target_length = 128
-    tokenizer.max_source_length = 128
+    if "indic-atis" in dataset_name:
+        tokenizer.max_target_length = 128
+        tokenizer.max_source_length = 128
+        model.config.max_length = 128
+    
+    else:
+        tokenizer.max_target_length = 64
+        tokenizer.max_source_length = 64
+        model.config.max_length = 64
 
     if "mbart" in tokenizer.name_or_path:
         tokenizer.src_lang = mbart_dict[train_lang]
@@ -634,12 +644,13 @@ def postprocess_text(preds, labels):
 
 
 def post_process_logical_form(sent):
-    x = sent.replace("[", "[ ")
-    x = x.replace("]", " ]")
-    x = x.replace("SLOT:", " SL: ")
-    x = x.replace("INTENT:", " IN: ")
-    x = re.sub(r"\s+", " ", x)
-    return x
+    # x = sent.replace("[", "[")
+    # x = x.replace("]", "]")
+    # x = x.replace("SLOT:", " SL")
+    # x = x.replace("INTENT", "IN")
+    # x = re.sub(r"\s+", " ", x)
+    # return x
+    return sent
 
 
 def normalize_answer(s):
@@ -673,6 +684,9 @@ def f1_score(prediction, ground_truth):
     f1 = (2 * precision * recall) / (precision + recall)
     return f1
 
+def tree_labelled_f1(predictions, ground_truth):
+    return np.mean([res['tree_labeled_bracketing_scores']['f1'] for res in evaluate_predictions(predictions, labels)], axis=0)
+
 
 def evaluate(gold_answers, predictions, tokenizer):
     scores = []
@@ -682,9 +696,9 @@ def evaluate(gold_answers, predictions, tokenizer):
     for ground_truth, prediction in zip(gold_answers, predictions):
 
         exact_match_metric = exact_match([prediction], [ground_truth], tokenizer)
-        f1 = f1_score(prediction.lower(), ground_truth.lower())
+        f1 = tree_labelled_f1([prediction], [ground_truth])
 
-        dist = lev.ratio(prediction.lower(), ground_truth.lower())
+        dist = lev.ratio(prediction, ground_truth)
 
         exact_matches.append(exact_match_metric)
         scores.append(f1)
@@ -692,7 +706,7 @@ def evaluate(gold_answers, predictions, tokenizer):
 
     return {
         "exact_match": exact_matches,
-        "f1": scores,
+        "tree_labelled_f1": scores,
         "levenshtein_distance": lev_dist,
     }
 
@@ -762,8 +776,8 @@ def generate(
             generated_tokens = accelerator.unwrap_model(model).generate(
                 batch["input_ids"],
                 attention_mask=batch["attention_mask"],
-                num_beams=2,
-                max_length=128,
+                num_beams=3,
+                max_length=128 if dataset_name == "indic-atis" else 64,
                 use_cache=True,
                 num_return_sequences=1,
                 early_stopping=True,
