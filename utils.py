@@ -685,7 +685,7 @@ def f1_score(prediction, ground_truth):
     return f1
 
 def tree_labelled_f1(predictions, ground_truth):
-    return np.mean([res['tree_labeled_bracketing_scores']['f1'] for res in evaluate_predictions(predictions, labels)], axis=0)
+    return np.mean([res['tree_labeled_bracketing_scores']['f1'] for res in evaluate_predictions(predictions, ground_truth)], axis=0)
 
 
 def evaluate(gold_answers, predictions, tokenizer):
