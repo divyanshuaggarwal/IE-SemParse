@@ -335,7 +335,7 @@ def get_model(model_checkpoint, tokenizer, encoder_decoder=False):
         model.config.num_beams = 10
         model.config.vocab_size = model.config.encoder.vocab_size
 
-        model.encoder.resize_token_embeddings(len(tokenizer))
+        # model.encoder.resize_token_embeddings(len(tokenizer))
         model.decoder.resize_token_embeddings(len(tokenizer))
 
     else:
@@ -543,11 +543,11 @@ def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
         optimizer,
         train_dataloader,
         val_dataloader,
-        lr_scheduler,
+        # lr_scheduler,
     ) = accelerator.prepare(optimizer, 
                             train_dataloader,
                             val_dataloader, 
-                            lr_scheduler
+                            # lr_scheduler
                            )
 
     # Now we train the model
@@ -578,7 +578,7 @@ def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
                 loss = outputs.loss
                 accelerator.backward(loss)
                 optimizer.step()
-                lr_scheduler.step()
+                # lr_scheduler.step()
                 optimizer.zero_grad()
 
                 progress_bar.update(1)
@@ -862,7 +862,7 @@ def generate(
         
         
         save_data["predictions"] = preds
-        save_datt['post_processed_predictions'] = list(map(post_process_lf, preds))
+        save_data['post_processed_predictions'] = list(map(post_process_lf, preds))
         save_data["labels"] = labels
 
         save_data["trg"], _ = postprocess_text(save_data["trg"], [])
