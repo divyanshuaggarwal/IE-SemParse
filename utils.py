@@ -606,7 +606,7 @@ def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
             {"epoch": epoch, "val_loss": val_loss},
         )
 
-        if val_loss < min_val_loss:
+        if val_loss < min_val_loss - hyperparameter['margin']:
             epochs_no_improve = 0
             min_val_loss = val_loss
             # output_dir = f"val_loss_{val_loss}"
@@ -861,11 +861,12 @@ def generate(
         
         
         save_data["predictions"] = preds
-        save_data["labels"] = post_process_lf(labels)
+        save_datt['post_processed_predictions'] = list(map(post_process_lf, preds))
+        save_data["labels"] = labels
 
         save_data["trg"], _ = postprocess_text(save_data["trg"], [])
 
-        metrics = evaluate(save_data["labels"], save_data["predictions"], tokenizer)
+        metrics = evaluate(save_data["labels"], save_data["post_processed_predictions"], tokenizer)
 
         for k, v in metrics.items():
             save_data[k] = v

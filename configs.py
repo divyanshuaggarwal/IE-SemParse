@@ -49,6 +49,7 @@ hyperparameters = {
     "gradient_accumulation_steps": 4,
     "num_warmup_steps": 0,
     "weight_decay": 0.0,
+    'margin': 0.1,
 }
 
 
@@ -63,21 +64,21 @@ batch_sizes_gpu = {
 }
 
 model_lr = {
-    "ai4bharat/IndicBART": 3e-5,
-    "ai4bharat/IndicBART-XXEN": 3e-5,
-    "google/mt5-base": 1e-5,
-    "facebook/mbart-large-50": 1e-5,
-    "facebook/mbart-large-50-many-to-one-mmt": 1e-5,
+    "ai4bharat/IndicBART": 3e-3,
+    "ai4bharat/IndicBART-XXEN": 3e-4,
+    "google/mt5-base": 1e-4,
+    "facebook/mbart-large-50": 1e-4,
+    "facebook/mbart-large-50-many-to-one-mmt": 1e-4,
     "xlm-roberta-base": 3e-5,
     "google/muril-base-cased": 3e-5,
 }
 
 model_epochs_gpu = {
-    "ai4bharat/IndicBART": 50,
-    "ai4bharat/IndicBART-XXEN": 50,
-    "google/mt5-base": 30,
-    "facebook/mbart-large-50": 25,
-    "facebook/mbart-large-50-many-to-one-mmt": 25,
+    "ai4bharat/IndicBART": 25,
+    "ai4bharat/IndicBART-XXEN": 25,
+    "google/mt5-base": 18,
+    "facebook/mbart-large-50": 18,
+    "facebook/mbart-large-50-many-to-one-mmt": 18,
     "xlm-roberta-base": 5,
     "google/muril-base-cased": 5,
 }
