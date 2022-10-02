@@ -76,9 +76,9 @@ model_lr = {
 model_epochs_gpu = {
     "ai4bharat/IndicBART": 25,
     "ai4bharat/IndicBART-XXEN": 25,
-    "google/mt5-base": 18,
-    "facebook/mbart-large-50": 18,
-    "facebook/mbart-large-50-many-to-one-mmt": 18,
+    "google/mt5-base": 15,
+    "facebook/mbart-large-50": 15,
+    "facebook/mbart-large-50-many-to-one-mmt": 15,
     "xlm-roberta-base": 5,
     "google/muril-base-cased": 5,
 }
