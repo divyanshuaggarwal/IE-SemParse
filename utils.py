@@ -77,7 +77,7 @@ logger = get_logger(__name__)
 metric = load_metric("exact_match")
 
 # Summary info about the Metric
-metric
+# metric
 
 """# Define the Translation Data Module"""
 

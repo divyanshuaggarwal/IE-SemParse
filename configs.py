@@ -67,8 +67,8 @@ model_lr = {
     "ai4bharat/IndicBART": 3e-3,
     "ai4bharat/IndicBART-XXEN": 3e-3,
     "google/mt5-base": 5e-4,
-    "facebook/mbart-large-50": 5e-4,
-    "facebook/mbart-large-50-many-to-one-mmt": 5e-4,
+    "facebook/mbart-large-50": 5e-5,
+    "facebook/mbart-large-50-many-to-one-mmt": 5e-5,
     "xlm-roberta-base": 3e-5,
     "google/muril-base-cased": 3e-5,
 }
