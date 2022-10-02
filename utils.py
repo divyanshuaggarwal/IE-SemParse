@@ -53,6 +53,7 @@ import json
 import torch
 from intents_slots import intents_slots
 from evaluate import *
+from configs import hyperparameters
 
 print(torch.__version__)
 
@@ -446,20 +447,20 @@ def create_dataloaders(
         return train_dataloader, val_dataloader
 
 
-hyperparameters = {
-    "learning_rate": 1e-3,
-    "num_epochs": 1000,  # set to very high number
-    # Actual batch size will this x 8 (was 8 before but can cause OOM)
-    "train_batch_size": 16,
-    # Actual batch size will this x 8 (was 32 before but can cause OOM)
-    "eval_batch_size": 16,
-    "seed": 42,
-    "patience": 2,  # early stopping
-    "output_dir": "/content/",
-    "gradient_accumulation_steps": 4,
-    "num_warmup_steps": 500,
-    "weight_decay": 0.0,
-}
+# hyperparameters = {
+#     "learning_rate": 1e-3,
+#     "num_epochs": 1000,  # set to very high number
+#     # Actual batch size will this x 8 (was 8 before but can cause OOM)
+#     "train_batch_size": 16,
+#     # Actual batch size will this x 8 (was 32 before but can cause OOM)
+#     "eval_batch_size": 16,
+#     "seed": 42,
+#     "patience": 2,  # early stopping
+#     "output_dir": "/content/",
+#     "gradient_accumulation_steps": 4,
+#     "num_warmup_steps": 500,
+#     "weight_decay": 0.0,
+# }
 
 # import datasets
 
@@ -606,7 +607,7 @@ def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
             {"epoch": epoch, "val_loss": val_loss},
         )
 
-        if val_loss < min_val_loss - hyperparameter['margin']:
+        if val_loss < min_val_loss:
             epochs_no_improve = 0
             min_val_loss = val_loss
             # output_dir = f"val_loss_{val_loss}"
