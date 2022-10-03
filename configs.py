@@ -52,6 +52,16 @@ hyperparameters = {
     'early_stopping_margin': 0.1,
 }
 
+model_step_size = {
+    "ai4bharat/IndicBART": 4,
+    "ai4bharat/IndicBART-XXEN": 4,
+    "google/mt5-base": 2,
+    "facebook/mbart-large-50": 2,
+    "facebook/mbart-large-50-many-to-one-mmt": 2,
+    "xlm-roberta-base": 1,
+    "google/muril-base-cased": 1,
+}
+
 
 batch_sizes_gpu = {
     "ai4bharat/IndicBART": 140,
@@ -67,8 +77,8 @@ model_lr = {
     "ai4bharat/IndicBART": 3e-3,
     "ai4bharat/IndicBART-XXEN": 3e-3,
     "google/mt5-base": 5e-4,
-    "facebook/mbart-large-50": 5e-5,
-    "facebook/mbart-large-50-many-to-one-mmt": 5e-5,
+    "facebook/mbart-large-50": 1e-4,
+    "facebook/mbart-large-50-many-to-one-mmt": 1e-4,
     "xlm-roberta-base": 3e-5,
     "google/muril-base-cased": 3e-5,
 }

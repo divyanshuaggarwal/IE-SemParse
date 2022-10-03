@@ -53,7 +53,7 @@ import json
 import torch
 from intents_slots import intents_slots
 from evaluate import *
-from configs import hyperparameters
+from configs import hyperparameters, model_step_size
 
 print(torch.__version__)
 
@@ -526,18 +526,23 @@ def train(model, tokenizer, dataset, args, hyperparameters=hyperparameters):
     ]
 
     optimizer = torch.optim.AdamW(
-        optimizer_grouped_parameters, lr=hyperparameters["learning_rate"]
+        optimizer_grouped_parameters, lr=hyperparameters["learning_rate"], 
     )
 
     # There is no specific order to remember, we just need to unpack the objects in the same order we gave them to the
     # prepare method.
 
-    lr_scheduler = get_scheduler(
-        name="linear",
-        optimizer=optimizer,
-        num_warmup_steps=hyperparameters["num_warmup_steps"],
-        num_training_steps=len(train_dataloader) * hyperparameters["num_epochs"],
-    )
+    # lr_scheduler = get_scheduler(
+    #     name="linear",
+    #     optimizer=optimizer,
+    #     num_warmup_steps=hyperparameters["num_warmup_steps"],
+    #     num_training_steps=len(train_dataloader) * hyperparameters["num_epochs"],
+    # )
+    
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(
+                                                    optimizer=optimizer,
+                                                    step_size=model_step_size[model_name]
+                                                    )
 
     (
         optimizer,
@@ -693,10 +698,10 @@ def evaluate(gold_answers, predictions, tokenizer):
 
     for ground_truth, prediction in zip(gold_answers, predictions):
 
-        exact_match_metric = exact_match([prediction], [ground_truth], tokenizer)
-        f1 = tree_labelled_f1([prediction], [ground_truth])
+        exact_match_metric = exact_match([prediction.lower()], [ground_truth.lower()], tokenizer)
+        f1 = tree_labelled_f1([prediction.lower()], [ground_truth.lower()])
 
-        dist = lev.ratio(prediction, ground_truth)
+        dist = lev.ratio(prediction.lower(), ground_truth.lower())
 
         exact_matches.append(exact_match_metric)
         scores.append(f1)

@@ -4,9 +4,11 @@ from typing import List, Optional, Tuple
 
 BRACKET_OPEN = "["
 BRACKET_CLOSE = "]"
-PREFIX_INTENT = "IN:"
-PREFIX_SLOT = "SL:"
+# PREFIX_INTENT = "IN:"
+# PREFIX_SLOT = "SL:"
 
+PREFIX_INTENT = "in:"
+PREFIX_SLOT = "sl:"
 
 class Node:
     """
