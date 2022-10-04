@@ -5,7 +5,7 @@
 
 apt-get update && apt-get upgrade -y
 
-apt-get install tmux git-lfs htop gcc -y
+apt-get install tmux git-lfs htop tree gcc -y
 
 pip install setuptools
 pip install -r requirements.txt
