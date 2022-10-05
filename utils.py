@@ -286,10 +286,13 @@ def get_tokenizer(model_checkpoint, dataset_name, lang):
     tokenizer.eos_id = tokenizer._convert_token_to_id_with_added_voc("</s>")
     tokenizer.pad_id = tokenizer._convert_token_to_id_with_added_voc("<pad>")
     
-    tokenizer.add_tokens(intents_slots[dataset_name]['intents'] + intents_slots[dataset_name]['slots'])
+    added_vocab = intents_slots[dataset_name]['intents'] + intents_slots[dataset_name]['slots']
     
     if "indicbart" in model_checkpoint:
-        tokenizer.add_tokens([f"<2{lang}>" for lang in INDIC])
+        added_vocab += [f"<2{lang}>" for lang in INDIC]
+    
+    tokenizer.add_tokens(added_vocab)
+    
 
     # if "indic-atis" not in dataset_name:    
     #     tokenizer.model_max_length = 64
