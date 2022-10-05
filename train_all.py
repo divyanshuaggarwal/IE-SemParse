@@ -61,7 +61,8 @@ def main():
             if model_name in os.listdir(f"{base_path}/train_all/{dataset_name}/"):
                 if len(
                     os.listdir(f"{base_path}/train_all/{dataset_name}/{model_name}")
-                ) == len(INDIC):
+                ) >= len(INDIC):
+                    print("skipping....")
                     continue
 
             else:
