@@ -76,11 +76,7 @@ def main():
 
                 # tokenizer = get_tokenizer(model_checkpoint, dataset_name, "en")
 
-                if model_checkpoint in encoder_models:
-                    model = get_model(model_checkpoint, tokenizer, encoder_decoder=True)
-
-                else:
-                    model = get_model(model_checkpoint, tokenizer)
+                
 
                 # english_dataset = prepare_dataset(
                 #     raw_dataset, dataset_name, tokenizer, "en", "en"
@@ -93,13 +89,19 @@ def main():
 
                 # train(model, tokenizer, english_dataset, args, hyperparameters)
 
-                # tokenizer = get_tokenizer(model_checkpoint, dataset_name, lang)
+                tokenizer = get_tokenizer(model_checkpoint, dataset_name, lang)
+                
+                if model_checkpoint in encoder_models:
+                    model = get_model(model_checkpoint, tokenizer, encoder_decoder=True)
 
-                # raw_dataset = create_dataset(dataset_name, lang, lang)
+                else:
+                    model = get_model(model_checkpoint, tokenizer)
 
-                # lang_dataset = prepare_dataset(
-                #     raw_dataset, dataset_name, tokenizer, lang, lang
-                # )
+                raw_dataset = create_dataset(dataset_name, lang, lang)
+
+                lang_dataset = prepare_dataset(
+                    raw_dataset, dataset_name, tokenizer, model, lang, lang
+                )
 
                 dataset = make_combined_dataset(dataset_name, lang, model_checkpoint)
 
@@ -108,7 +110,7 @@ def main():
                 generate(
                     model,
                     tokenizer,
-                    dataset["test"],
+                    lang_dataset["test"],
                     raw_dataset["test"],
                     "english_indic_train",
                     dataset_name,

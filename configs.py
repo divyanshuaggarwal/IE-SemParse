@@ -64,11 +64,11 @@ model_step_size = {
 
 
 batch_sizes_gpu = {
-    "ai4bharat/IndicBART": 140,
-    "ai4bharat/IndicBART-XXEN": 140,
-    "google/mt5-base": 22,
-    "facebook/mbart-large-50": 28,
-    "facebook/mbart-large-50-many-to-one-mmt": 28,
+    "ai4bharat/IndicBART": 128,
+    "ai4bharat/IndicBART-XXEN": 128,
+    "google/mt5-base": 18,
+    "facebook/mbart-large-50": 22,
+    "facebook/mbart-large-50-many-to-one-mmt": 22,
     "xlm-roberta-base": 28,
     "google/muril-base-cased": 36,
 }
@@ -76,7 +76,7 @@ batch_sizes_gpu = {
 model_lr = {
     "ai4bharat/IndicBART": 3e-3,
     "ai4bharat/IndicBART-XXEN": 3e-3,
-    "google/mt5-base": 5e-4,
+    "google/mt5-base": 3e-4,
     "facebook/mbart-large-50": 1e-4,
     "facebook/mbart-large-50-many-to-one-mmt": 1e-4,
     "xlm-roberta-base": 3e-5,

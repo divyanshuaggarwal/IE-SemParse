@@ -884,8 +884,10 @@ def generate(
 
         with open(f"{pth}/{lang}.json", "w", encoding="utf-8") as f:
             json.dump({"outputs": save_dict}, f, indent=6, ensure_ascii=False)
-
+    
+    torch.cuda.empty_cache()
     accelerator.wait_for_everyone()
+    
 
 
 def remove_model():
