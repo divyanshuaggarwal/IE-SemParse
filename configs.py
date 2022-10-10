@@ -71,7 +71,7 @@ batch_sizes_gpu = {
     "xlm-roberta-base": 28,
     "google/muril-base-cased": 36,
     "t5-large": 16,
-    "facebook/bart-large": 16
+    "facebook/bart-large": 16,
     "t5-base": 256,
     "facebook/bart-base": 256,
 }
@@ -113,7 +113,7 @@ model_patience = {
     "xlm-roberta-base": 1,
     "google/muril-base-cased": 1,
     "t5-large": 1,
-    "facebook/bart-large": 1
+    "facebook/bart-large": 1,
     "t5-base": 2,
     "facebook/bart-base": 2
 }
