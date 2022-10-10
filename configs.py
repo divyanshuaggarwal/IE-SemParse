@@ -21,7 +21,6 @@ encoder_models = [
 dataset_names = ["itop", "indic-TOP", "indic-atis"]
 
 INDIC = [
-    # 'en',
     "hi",
     "bn",
     "mr",
@@ -64,13 +63,17 @@ model_step_size = {
 
 
 batch_sizes_gpu = {
-    "ai4bharat/IndicBART": 128,
-    "ai4bharat/IndicBART-XXEN": 128,
-    "google/mt5-base": 18,
-    "facebook/mbart-large-50": 22,
-    "facebook/mbart-large-50-many-to-one-mmt": 22,
+    "ai4bharat/IndicBART": 256,
+    "ai4bharat/IndicBART-XXEN": 256,
+    "google/mt5-base": 64,
+    "facebook/mbart-large-50": 64,
+    "facebook/mbart-large-50-many-to-one-mmt": 64,
     "xlm-roberta-base": 28,
     "google/muril-base-cased": 36,
+    "t5-large": 16,
+    "facebook/bart-large": 16
+    "t5-base": 256,
+    "facebook/bart-base": 256,
 }
 
 model_lr = {
@@ -81,11 +84,19 @@ model_lr = {
     "facebook/mbart-large-50-many-to-one-mmt": 1e-4,
     "xlm-roberta-base": 3e-5,
     "google/muril-base-cased": 3e-5,
+    "t5-large": 3e-5,
+    "facebook/bart-large": 3e-5,
+    "t5-base": 3e-3,
+    "facebook/bart-base": 3e-3,
 }
 
 model_epochs_gpu = {
     "ai4bharat/IndicBART": 25,
     "ai4bharat/IndicBART-XXEN": 25,
+    "t5-large": 25,
+    "facebook/bart-large": 25,
+    "t5-base": 25,
+    "facebook/bart-base": 25,
     "google/mt5-base": 15,
     "facebook/mbart-large-50": 15,
     "facebook/mbart-large-50-many-to-one-mmt": 15,
@@ -94,13 +105,17 @@ model_epochs_gpu = {
 }
 
 model_patience = {
-    "ai4bharat/IndicBART": 1,
-    "ai4bharat/IndicBART-XXEN": 1,
+    "ai4bharat/IndicBART": 2,
+    "ai4bharat/IndicBART-XXEN": 2,
     "google/mt5-base": 1,
     "facebook/mbart-large-50": 1,
     "facebook/mbart-large-50-many-to-one-mmt": 1,
     "xlm-roberta-base": 1,
     "google/muril-base-cased": 1,
+    "t5-large": 1,
+    "facebook/bart-large": 1
+    "t5-base": 2,
+    "facebook/bart-base": 2
 }
 
 

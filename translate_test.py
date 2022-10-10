@@ -2,6 +2,7 @@ from pprint import pprint
 from utils import *
 from configs import *
 
+english_models = ['t5-base', 't5-large', 'facebook/bart-large', 'facebook/bart-base']
 
 def main():
     args = get_args()
@@ -15,8 +16,8 @@ def main():
             os.mkdir(f"{base_path}/translate_test/{dataset_name}")
 
         for model_checkpoint in list(
-            seq2seq_models + encoder_models + translation_models
-        ):
+            seq2seq_models + encoder_models + translation_models + english_models
+        ): 
             model_name = (
                 model_checkpoint.split("/")[-1]
                 if "/" in model_checkpoint

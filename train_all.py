@@ -6,7 +6,7 @@ from configs import *
 
 def make_combined_dataset(dataset_name, model_checkpoint):
     datasets = []
-    for lang in INDIC:
+    for lang in ['en'] + INDIC:
         raw_dataset = create_dataset(dataset_name, lang, lang)
         tokenizer = get_tokenizer(model_checkpoint, dataset_name, lang)
 
