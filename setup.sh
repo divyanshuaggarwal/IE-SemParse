@@ -10,7 +10,7 @@ apt-get install tmux git-lfs htop tree gcc -y
 pip install setuptools
 pip install -r requirements.txt
 
-echo "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" > ~/.huggingface
+echo "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" > ~/.huggingface/token
 
 
 

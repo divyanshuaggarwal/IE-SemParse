@@ -52,7 +52,7 @@ import logging
 import json
 import torch
 from intents_slots import intents_slots
-from evaluate import *
+from evaluations import *
 from configs import hyperparameters, model_step_size
 
 print(torch.__version__)
