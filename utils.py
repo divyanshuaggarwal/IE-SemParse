@@ -37,6 +37,7 @@ from torch.utils.data import DataLoader
 from torch.nn import functional as F
 import sentencepiece as spm
 from datasets import load_dataset, load_metric, Dataset, DatasetDict
+import evaluate as evaluator
 import pandas as pd
 import transformers
 import Levenshtein as lev
@@ -74,7 +75,7 @@ logger = get_logger(__name__)
 """# Prepare Dataset"""
 
 # Load a metric
-metric = load_metric("exact_match")
+metric = evaluator.load("exact_match")
 
 # Summary info about the Metric
 # metric
@@ -124,36 +125,58 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated=False):
     val = test_data["val"]
 
     test = test_data["test"]
+    
 
     if dataset == "itop":
         for idx, example in enumerate(train):
-            if train_lang != "en":
+            if train_lang.startswith("hi_"):
+                train[idx]["src"] = example["translated text"]
+                
+            elif train_lang != "en":
                 train[idx]["src"] = example["postprocessed_translated_question"]
+                
             else:
                 train[idx]["src"] = example["question"]
-            train[idx]["trg"] = example["logical_form"]
+            trg = "decoupled logical form" if "decoupled logical form" in example else "logical_form"
+            train[idx]["trg"] = example[trg]
 
         for idx, example in enumerate(val):
-            if test_lang != "en":
+            if test_lang.startswith("hi_"):
+                if backtranslated:
+                    val[idx]["src"] = example["back translated text"]
+                else:
+                    val[idx]["src"] = example["translated text"]
+                    
+            elif test_lang != "en":
                 if backtranslated:
                     val[idx]["src"] = example["backtranslated_post_processed_questions"]
                 else:
                     val[idx]["src"] = example["postprocessed_translated_question"]
+                
             else:
                 val[idx]["src"] = example["question"]
-            val[idx]["trg"] = example["logical_form"]
+            trg = "decoupled logical form" if "decoupled logical form" in example else "logical_form"
+            val[idx]["trg"] = example[trg]
 
         for idx, example in enumerate(test):
-            if test_lang != "en":
+            if test_lang.startswith("hi_"):
+                if backtranslated:
+                    test[idx]["src"] = example["back translated text"]
+                else:
+                    test[idx]["src"] = example["translated text"]
+                    
+            elif test_lang != "en":
                 if backtranslated:
                     test[idx]["src"] = example[
                         "backtranslated_post_processed_questions"
                     ]
                 else:
                     test[idx]["src"] = example["postprocessed_translated_question"]
+                    
             else:
                 test[idx]["src"] = example["question"]
-            test[idx]["trg"] = example["logical_form"]
+            trg = "decoupled logical form" if "decoupled logical form" in example else "logical_form"
+            test[idx]["trg"] = example[trg]
 
     elif dataset == "indic-TOP":
         for idx, example in enumerate(train):
@@ -188,31 +211,53 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated=False):
 
     elif dataset == "indic-atis":
         for idx, example in enumerate(train):
-            if train_lang != "en":
+            if train_lang.startswith("hi_"):
                 train[idx]["src"] = example["translated text"]
+            
+            elif train_lang != "en":
+                train[idx]["src"] = example["translated text"]
+            
             else:
                 train[idx]["src"] = example["text"]
-            train[idx]["trg"] = example["logical form"]
+            trg = "decoupled logical form" if "decoupled logical form" in example else "logical form"
+            train[idx]["trg"] = example[trg]
 
         for idx, example in enumerate(val):
-            if test_lang != "en":
+            if test_lang.startswith("hi_"):
                 if backtranslated:
                     val[idx]["src"] = example["back translated text"]
                 else:
                     val[idx]["src"] = example["translated text"]
+                        
+            elif test_lang != "en":
+                if backtranslated:
+                    val[idx]["src"] = example["back translated text"]
+                else:
+                    val[idx]["src"] = example["translated text"]
+                    
             else:
                 val[idx]["src"] = example["text"]
-            val[idx]["trg"] = example["logical form"]
+            trg = "decoupled logical form" if "decoupled logical form" in example else "logical form"
+            val[idx]["trg"] = example[trg]
 
         for idx, example in enumerate(test):
-            if test_lang != "en":
+            if test_lang.startswith("hi_"):
                 if backtranslated:
                     test[idx]["src"] = example["back translated text"]
                 else:
                     test[idx]["src"] = example["translated text"]
+                    
+            elif test_lang != "en":
+                if backtranslated:
+                    test[idx]["src"] = example["back translated text"]
+                else:
+                    test[idx]["src"] = example["translated text"]
+                    
             else:
                 test[idx]["src"] = example["text"]
-            test[idx]["trg"] = example["logical form"]
+            
+            trg = "decoupled logical form" if "decoupled logical form" in example else "logical form"
+            test[idx]["trg"] = example[trg]
 
     train_data = Dataset.from_pandas(pd.DataFrame(data=train))
 
@@ -232,6 +277,7 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated=False):
 
 
 def preprocess(examples, tokenizer, lang):
+    lang = lang[:2]
 
     if "mt5" in tokenizer.name_or_path.lower():
         prefix = f"Parse from {lang} to english logical form: "
@@ -272,6 +318,7 @@ def preprocess(examples, tokenizer, lang):
 
 
 def get_tokenizer(model_checkpoint, dataset_name, lang):
+    lang = lang[:2]
 
     tokenizer = AutoTokenizer.from_pretrained(
         model_checkpoint,
@@ -306,7 +353,7 @@ def get_tokenizer(model_checkpoint, dataset_name, lang):
     padding = True
 
     if "mbart" in model_checkpoint:
-        tokenizer.src_lang = mbart_dict[lang]
+        tokenizer.src_lang = mbart_dict[lang[:2]]
         tokenizer.tgt_lang = "en_XX"
 
     return tokenizer
@@ -346,7 +393,7 @@ def get_model(model_checkpoint, tokenizer, encoder_decoder=False):
         
 
     #     if "mbart" in model_checkpoint:
-    #         model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[lang]]
+    #         model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[lang[:2]]]
 
     #     else:
     #         model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(
@@ -375,9 +422,9 @@ def prepare_dataset(
 #         model.config.max_length = 32
 
     if "mbart" in tokenizer.name_or_path:
-        tokenizer.src_lang = mbart_dict[train_lang]
+        tokenizer.src_lang = mbart_dict[train_lang[:2]]
         tokenizer.tgt_lang = "en_XX"
-    #         model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[train_lang]]
+    #         model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[train_lang[:2]]]
 
     #     else:
     #         model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(train_lang)
@@ -392,9 +439,9 @@ def prepare_dataset(
     )
 
     if "mbart" in tokenizer.name_or_path:
-        tokenizer.src_lang = mbart_dict[test_lang]
+        tokenizer.src_lang = mbart_dict[test_lang[:2]]
         tokenizer.tgt_lang = "en_XX"
-    #     model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[test_lang]]
+    #     model.config.decoder_start_token_id = tokenizer.lang_code_to_id[mbart_dict[test_lang[:2]]]
     # else:
     #     model.config.decoder_start_token_id = tokenizer.convert_tokens_to_ids(test_lang)
 
