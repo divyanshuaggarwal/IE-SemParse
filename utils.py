@@ -102,23 +102,31 @@ INDIC = ["hi", "bn", "mr", "as", "ta", "te", "or", "ml", "pa", "gu", "kn"]
 
 
 
-def create_dataset(dataset, train_lang, test_lang, backtranslated=False):
+def create_dataset(dataset, train_lang, test_lang, lang=None, backtranslated=False, orig=False):
 
     if train_lang != "en":
         with open(f"Indic-SemParse/filtered_data/{dataset}/{train_lang}.json", "r") as f:
             train_data = json.load(f)
 
     else:
-        with open(f"Indic-SemParse/filtered_data/{dataset}/hi.json", "r") as f:
-            train_data = json.load(f)
+        if lang is not None:
+            with open(f"Indic-SemParse/filtered_data/{dataset}/{lang}.json", "r") as f:
+                train_data = json.load(f)
+        else:
+            with open(f"Indic-SemParse/filtered_data/{dataset}/hi.json", "r") as f:
+                train_data = json.load(f)
 
     if test_lang != "en":
         with open(f"Indic-SemParse/filtered_data/{dataset}/{test_lang}.json", "r") as f:
             test_data = json.load(f)
 
     else:
-        with open(f"Indic-SemParse/filtered_data/{dataset}/hi.json", "r") as f:
-            test_data = json.load(f)
+        if lang is not None:
+            with open(f"Indic-SemParse/filtered_data/{dataset}/{lang}.json", "r") as f:
+                test_data = json.load(f)
+        else:
+            with open(f"Indic-SemParse/filtered_data/{dataset}/hi.json", "r") as f:
+                test_data = json.load(f)
 
     train = train_data["train"]
 
@@ -136,31 +144,38 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated=False):
                 train[idx]["src"] = example["postprocessed_translated_question"]
                 
             else:
-                train[idx]["src"] = example["question"]
+                if lang is not None:
+                    train[idx]["src"] = example["text"]
+                else:
+                    train[idx]["src"] = example["question"]
+                    
             trg = "decoupled logical form" if "decoupled logical form" in example else "logical_form"
             train[idx]["trg"] = example[trg]
 
         for idx, example in enumerate(val):
             if test_lang.startswith("hi_"):
-                if backtranslated:
+                if backtranslated and not orig:
                     val[idx]["src"] = example["back translated text"]
                 else:
                     val[idx]["src"] = example["translated text"]
                     
             elif test_lang != "en":
-                if backtranslated:
+                if backtranslated and not orig:
                     val[idx]["src"] = example["backtranslated_post_processed_questions"]
                 else:
                     val[idx]["src"] = example["postprocessed_translated_question"]
                 
             else:
-                val[idx]["src"] = example["question"]
+                if lang is not None:
+                    val[idx]["src"] = example["text"]
+                else:
+                    val[idx]["src"] = example["question"]
             trg = "decoupled logical form" if "decoupled logical form" in example else "logical_form"
             val[idx]["trg"] = example[trg]
 
         for idx, example in enumerate(test):
             if test_lang.startswith("hi_"):
-                if backtranslated:
+                if backtranslated and not orig:
                     test[idx]["src"] = example["back translated text"]
                 else:
                     test[idx]["src"] = example["translated text"]
@@ -174,22 +189,29 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated=False):
                     test[idx]["src"] = example["postprocessed_translated_question"]
                     
             else:
-                test[idx]["src"] = example["question"]
+                if lang is not None:
+                    test[idx]["src"] = example["text"]
+                else:
+                    test[idx]["src"] = example["question"]
             trg = "decoupled logical form" if "decoupled logical form" in example else "logical_form"
             test[idx]["trg"] = example[trg]
 
     elif dataset == "indic-TOP":
         for idx, example in enumerate(train):
-            if train_lang != "en":
+            if train_lang != "en" and not orig:
                 train[idx]["src"] = example["postprocessed_translated_question"]
+            elif orig:
+                train[idx]["src"] = example["original question"]
             else:
                 train[idx]["src"] = example["question"]
             train[idx]["trg"] = example["decoupled logical form"]
 
         for idx, example in enumerate(val):
-            if test_lang != "en":
+            if test_lang != "en" or orig:
                 if backtranslated:
                     val[idx]["src"] = example["backtranslated_post_processed_questions"]
+                elif orig:
+                    val[idx]["src"] = example["original question"]
                 else:
                     val[idx]["src"] = example["postprocessed_translated_question"]
             else:
@@ -197,11 +219,13 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated=False):
             val[idx]["trg"] = example["decoupled logical form"]
 
         for idx, example in enumerate(test):
-            if test_lang != "en":
+            if test_lang != "en" or orig:
                 if backtranslated:
                     test[idx]["src"] = example[
                         "backtranslated_post_processed_questions"
                     ]
+                elif orig:
+                    test[idx]["src"] = example["original question"]
                 else:
                     test[idx]["src"] = example["postprocessed_translated_question"]
             else:
@@ -211,7 +235,7 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated=False):
 
     elif dataset == "indic-atis":
         for idx, example in enumerate(train):
-            if train_lang.startswith("hi_"):
+            if train_lang.startswith("hi_") or (lang is not None and lang.startswith("hi_")):
                 train[idx]["src"] = example["translated text"]
             
             elif train_lang != "en":
@@ -223,7 +247,7 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated=False):
             train[idx]["trg"] = example[trg]
 
         for idx, example in enumerate(val):
-            if test_lang.startswith("hi_"):
+            if test_lang.startswith("hi_") or (lang is not None and lang.startswith("hi_")):
                 if backtranslated:
                     val[idx]["src"] = example["back translated text"]
                 else:
@@ -241,7 +265,7 @@ def create_dataset(dataset, train_lang, test_lang, backtranslated=False):
             val[idx]["trg"] = example[trg]
 
         for idx, example in enumerate(test):
-            if test_lang.startswith("hi_"):
+            if test_lang.startswith("hi_") or (lang is not None and lang.startswith("hi_")):
                 if backtranslated:
                     test[idx]["src"] = example["back translated text"]
                 else:

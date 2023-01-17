@@ -4,9 +4,28 @@ from datasets import concatenate_datasets, DatasetDict
 from configs import *
 
 
+INDIC = [
+    "hi_orig",
+    "hi_atis",
+    "hi_mtop",
+    "hi",
+    "bn",
+    "mr",
+    "as",
+    "ta",
+    "te",
+    "or",
+    "ml",
+    "pa",
+    "gu",
+    "kn",
+]
+
 def make_combined_dataset(dataset_name, model_checkpoint):
     datasets = []
     for lang in ['en'] + INDIC:
+        if f"{lang}.json" not in os.listdir(f"/workspace/Indic-SemParse/Indic-SemParse/filtered_data/{dataset_name}/"):
+                    continue
         raw_dataset = create_dataset(dataset_name, lang, lang)
         tokenizer = get_tokenizer(model_checkpoint, dataset_name, lang)
 
@@ -40,6 +59,8 @@ def main():
     args = get_args()
     if "train_all" not in os.listdir(base_path):
         os.mkdir(os.path.join(base_path, "train_all"))
+    
+    print(dataset_names)
 
     for dataset_name in dataset_names:
         print(f"dataset:{dataset_name}")
@@ -61,7 +82,7 @@ def main():
             if model_name in os.listdir(f"{base_path}/train_all/{dataset_name}/"):
                 if len(
                     os.listdir(f"{base_path}/train_all/{dataset_name}/{model_name}")
-                ) >= len(INDIC):
+                ) >= len(INDIC) - 1:
                     print("skipping....")
                     continue
 
@@ -90,8 +111,12 @@ def main():
 
             pprint(hyperparameters)
             train(model, tokenizer, dataset, args, hyperparameters)
+            
 
             for lang in INDIC:
+                if f"{lang}.json" not in os.listdir(f"/workspace/Indic-SemParse/Indic-SemParse/unfiltered_data/{dataset_name}/"):
+                    continue
+                    
                 print(f"language:{lang}")
 
                 if f"{lang}.json" in os.listdir(

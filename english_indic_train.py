@@ -62,7 +62,11 @@ def main():
             ):
                 os.mkdir(f"{base_path}/english_indic_train/{dataset_name}/{model_name}")
 
+
             for lang in INDIC:
+                if f"{lang}.json" not in os.listdir(f"/workspace/Indic-SemParse/Indic-SemParse/filtered_data/{dataset_name}/"):
+                    continue
+                    
                 print(f"language:{lang}")
 
                 if f"{lang}.json" in os.listdir(

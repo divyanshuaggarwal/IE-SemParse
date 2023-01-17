@@ -18,20 +18,28 @@ encoder_models = [
     #   "google/muril-base-cased"
 ]
 
-dataset_names = ["itop", "indic-TOP", "indic-atis"]
+dataset_names = [
+                "itop",
+                "indic-TOP",
+                 "indic-atis",
+]
 
 INDIC = [
-    "hi",
-    "bn",
-    "mr",
-    "as",
-    "ta",
-    "te",
-    "or",
-    "ml",
-    "pa",
-    "gu",
-    "kn",
+    "en",
+    "hi_orig",
+    "hi_atis",
+    "hi_mtop",
+    # "hi",
+    # "bn",
+    # "mr",
+    # "as",
+    # "ta",
+    # "te",
+    # "or",
+    # "ml",
+    # "pa",
+    # "gu",
+    # "kn",
 ]
 
 hyperparameters = {
@@ -59,21 +67,25 @@ model_step_size = {
     "facebook/mbart-large-50-many-to-one-mmt": 2,
     "xlm-roberta-base": 1,
     "google/muril-base-cased": 1,
+    "t5-large": 4,
+    "facebook/bart-large": 2,
+    "t5-base": 4,
+    "facebook/bart-base": 1,
 }
 
 
 batch_sizes_gpu = {
-    "ai4bharat/IndicBART": 256,
-    "ai4bharat/IndicBART-XXEN": 256,
-    "google/mt5-base": 64,
-    "facebook/mbart-large-50": 64,
-    "facebook/mbart-large-50-many-to-one-mmt": 64,
+    "ai4bharat/IndicBART": 128,
+    "ai4bharat/IndicBART-XXEN": 128,
+    "google/mt5-base": 20,
+    "facebook/mbart-large-50": 18,
+    "facebook/mbart-large-50-many-to-one-mmt": 18,
     "xlm-roberta-base": 28,
     "google/muril-base-cased": 36,
-    "t5-large": 16,
-    "facebook/bart-large": 16,
-    "t5-base": 256,
-    "facebook/bart-base": 256,
+    "t5-large": 24,
+    "facebook/bart-large": 80,
+    "t5-base": 96,
+    "facebook/bart-base": 128,
 }
 
 model_lr = {
