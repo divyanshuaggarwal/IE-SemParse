@@ -1,6 +1,6 @@
 ![Alt IE-SemPArse](https://iesemparse.github.io/figures/ie-semparse-logo-transformed.jpeg)
 
-# Indic-SemParse
+# IE-SemParse
 
 Implementation of the translation pipeline, automatic sampling and scoring,human evaluation and experiments of our NLP4ConvAI@ACL2023 paper: [IE-SemParse: Evaluating Interbilingual Semantic Parsing for Indian Languages](https://arxiv.org/abs/2304.13005). To explore the dataset online visit [dataset page](https://huggingface.co/datasets/Divyanshu/IE_SemParse).
 
